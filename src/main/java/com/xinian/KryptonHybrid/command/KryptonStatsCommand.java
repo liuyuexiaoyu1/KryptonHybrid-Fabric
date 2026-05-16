@@ -134,153 +134,121 @@ public final class KryptonStatsCommand {
     }
 
     private static int executePacketsList(CommandContext<CommandSourceStack> ctx, int limit, boolean byCount) {
-        CommandSourceStack source = ctx.getSource();
         NetworkTrafficStats stats = NetworkTrafficStats.INSTANCE;
-
         List<NetworkTrafficStats.TrafficEntry> top =
-            byCount ? stats.getTopByCount(limit) : stats.getTopByBytes(limit);
-
+                byCount ? stats.getTopByCount(limit) : stats.getTopByBytes(limit);
         long totalPackets = stats.getTotalTrackedTypePackets();
         long totalBytes = stats.getTotalTrackedTypeBytes();
-        int typeCount = stats.getTrackedTypeCount();
-        Component sortLabel = byCount
-                ? Component.translatable("command.krypton_hybrid.sort.count")
-                : Component.translatable("command.krypton_hybrid.sort.bytes");
-
-        source.sendSuccess(() -> t("command.krypton_hybrid.packets.header",
-                limit, sortLabel, typeCount)
-                .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
-
-        int[] rank = {1};
-        for (NetworkTrafficStats.TrafficEntry entry : top) {
-            double cntPct   = totalPackets == 0 ? 0.0 : 100.0 * entry.count() / totalPackets;
-            double bytesPct = totalBytes   == 0 ? 0.0 : 100.0 * entry.totalBytes() / totalBytes;
-            String key = entry.key();
-            ChatFormatting nameColor = key.startsWith("custom:") ? ChatFormatting.YELLOW : ChatFormatting.AQUA;
-            int currentRank = rank[0]++;
-            source.sendSuccess(() -> t("command.krypton_hybrid.packets.row",
-                    String.format("%-2d", currentRank),
-                    Component.literal(truncate(key, 44)).withStyle(nameColor),
-                    String.format("%,d", entry.count()),
-                    String.format("%.1f", cntPct),
-                    NetworkTrafficStats.formatBytes(entry.totalBytes()),
-                    String.format("%.1f", bytesPct),
-                    String.format("%.0f", entry.avgBytes())), false);
-        }
-
-        source.sendSuccess(() -> t("command.krypton_hybrid.list.total",
-                String.format("%,d", totalPackets),
-                NetworkTrafficStats.formatBytes(totalBytes)), false);
-
-        return 1;
+        Component header = t("command.krypton_hybrid.packets.header",
+                limit, sortLabel(byCount), stats.getTrackedTypeCount());
+        return renderTopList(ctx.getSource(), top, totalPackets, totalBytes, header,
+                "command.krypton_hybrid.list.total",
+                (rank, entry, cntPct, bytesPct) -> {
+                    String key = entry.key();
+                    ChatFormatting nameColor = key.startsWith("custom:") ? ChatFormatting.YELLOW : ChatFormatting.AQUA;
+                    return t("command.krypton_hybrid.packets.row",
+                            String.format("%-2d", rank),
+                            Component.literal(truncate(key, 44)).withStyle(nameColor),
+                            String.format("%,d", entry.count()),
+                            String.format("%.1f", cntPct),
+                            NetworkTrafficStats.formatBytes(entry.totalBytes()),
+                            String.format("%.1f", bytesPct),
+                            String.format("%.0f", entry.avgBytes()));
+                });
     }
 
     private static int executePacketsWireList(CommandContext<CommandSourceStack> ctx, int limit) {
-        CommandSourceStack source = ctx.getSource();
         NetworkTrafficStats stats = NetworkTrafficStats.INSTANCE;
-
         List<NetworkTrafficStats.TrafficEntry> top = stats.getTopByWireBytes(limit);
         long totalPackets = stats.getTotalTrackedTypeWirePackets();
         long totalBytes = stats.getTotalTrackedTypeWireBytes();
-
-        source.sendSuccess(() -> Component.literal("Krypton packets by compressed wire bytes (top " + limit + ")")
-                .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
-
-        int[] rank = {1};
-        for (NetworkTrafficStats.TrafficEntry entry : top) {
-            double bytesPct = totalBytes == 0 ? 0.0 : 100.0 * entry.totalBytes() / totalBytes;
-            String key = entry.key();
-            ChatFormatting nameColor = key.startsWith("custom:") ? ChatFormatting.YELLOW : ChatFormatting.AQUA;
-            int currentRank = rank[0]++;
-            source.sendSuccess(() -> Component.literal(String.format(
-                    "%-2d %s count=%,d wire=%s %.1f%% avg=%s",
-                    currentRank,
-                    truncate(key, 44),
-                    entry.count(),
-                    NetworkTrafficStats.formatBytes(entry.totalBytes()),
-                    bytesPct,
-                    NetworkTrafficStats.formatBytes((long) entry.avgBytes())
-            )).withStyle(nameColor), false);
-        }
-
-        source.sendSuccess(() -> Component.literal("Total: "
-                + String.format("%,d", totalPackets)
-                + " packets, "
-                + NetworkTrafficStats.formatBytes(totalBytes)), false);
-
-        return 1;
+        Component header = t("command.krypton_hybrid.packets.wire.header", limit);
+        return renderTopList(ctx.getSource(), top, totalPackets, totalBytes, header,
+                "command.krypton_hybrid.list.total.wire",
+                (rank, entry, cntPct, bytesPct) -> {
+                    String key = entry.key();
+                    ChatFormatting nameColor = key.startsWith("custom:") ? ChatFormatting.YELLOW : ChatFormatting.AQUA;
+                    return t("command.krypton_hybrid.packets.wire.row",
+                            String.format("%-2d", rank),
+                            truncate(key, 44),
+                            String.format("%,d", entry.count()),
+                            NetworkTrafficStats.formatBytes(entry.totalBytes()),
+                            String.format("%.1f", bytesPct),
+                            NetworkTrafficStats.formatBytes((long) entry.avgBytes()))
+                            .withStyle(nameColor);
+                });
     }
 
     private static int executeModsList(CommandContext<CommandSourceStack> ctx, int limit, boolean byCount) {
-        CommandSourceStack source = ctx.getSource();
         NetworkTrafficStats stats = NetworkTrafficStats.INSTANCE;
-
         List<NetworkTrafficStats.TrafficEntry> top =
-            byCount ? stats.getTopModsByCount(limit) : stats.getTopModsByBytes(limit);
-
+                byCount ? stats.getTopModsByCount(limit) : stats.getTopModsByBytes(limit);
         long totalPackets = stats.getTotalTrackedTypePackets();
         long totalBytes   = stats.getTotalTrackedTypeBytes();
-        int modCount      = stats.getTrackedModCount();
-        Component sortLabel = byCount
-                ? Component.translatable("command.krypton_hybrid.sort.count")
-                : Component.translatable("command.krypton_hybrid.sort.bytes");
+        Component header = t("command.krypton_hybrid.mods.header",
+                limit, sortLabel(byCount), stats.getTrackedModCount());
+        return renderTopList(ctx.getSource(), top, totalPackets, totalBytes, header,
+                "command.krypton_hybrid.list.total",
+                (rank, entry, cntPct, bytesPct) -> t("command.krypton_hybrid.mods.row",
+                        String.format("%-2d", rank),
+                        String.format("%-20s", entry.key()),
+                        String.format("%,d", entry.count()),
+                        String.format("%.1f", cntPct),
+                        NetworkTrafficStats.formatBytes(entry.totalBytes()),
+                        String.format("%.1f", bytesPct)));
+    }
 
-        source.sendSuccess(() -> t("command.krypton_hybrid.mods.header",
-                limit, sortLabel, modCount)
-                .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
+    private static int executeModsWireList(CommandContext<CommandSourceStack> ctx, int limit) {
+        NetworkTrafficStats stats = NetworkTrafficStats.INSTANCE;
+        List<NetworkTrafficStats.TrafficEntry> top = stats.getTopModsByWireBytes(limit);
+        long totalPackets = stats.getTotalTrackedModWirePackets();
+        long totalBytes = stats.getTotalTrackedModWireBytes();
+        Component header = t("command.krypton_hybrid.mods.wire.header", limit);
+        return renderTopList(ctx.getSource(), top, totalPackets, totalBytes, header,
+                "command.krypton_hybrid.list.total.wire",
+                (rank, entry, cntPct, bytesPct) -> t("command.krypton_hybrid.mods.wire.row",
+                        String.format("%-2d", rank),
+                        String.format("%-20s", truncate(entry.key(), 20)),
+                        String.format("%,d", entry.count()),
+                        NetworkTrafficStats.formatBytes(entry.totalBytes()),
+                        String.format("%.1f", bytesPct))
+                        .withStyle(ChatFormatting.AQUA));
+    }
 
-        int[] rank = {1};
+    private static Component sortLabel(boolean byCount) {
+        return Component.translatable(byCount
+                ? "command.krypton_hybrid.sort.count"
+                : "command.krypton_hybrid.sort.bytes");
+    }
+
+    private static int renderTopList(CommandSourceStack source,
+                                     List<NetworkTrafficStats.TrafficEntry> top,
+                                     long totalPackets,
+                                     long totalBytes,
+                                     Component header,
+                                     String totalKey,
+                                     RowRenderer rowRenderer) {
+        source.sendSuccess(() -> header.copy().withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
+
+        int rank = 1;
         for (NetworkTrafficStats.TrafficEntry entry : top) {
             double cntPct   = totalPackets == 0 ? 0.0 : 100.0 * entry.count()      / totalPackets;
             double bytesPct = totalBytes   == 0 ? 0.0 : 100.0 * entry.totalBytes() / totalBytes;
-            int currentRank = rank[0]++;
-            source.sendSuccess(() -> t("command.krypton_hybrid.mods.row",
-                    String.format("%-2d", currentRank),
-                    String.format("%-20s", entry.key()),
-                    String.format("%,d", entry.count()),
-                    String.format("%.1f", cntPct),
-                    NetworkTrafficStats.formatBytes(entry.totalBytes()),
-                    String.format("%.1f", bytesPct)), false);
+            Component row = rowRenderer.render(rank, entry, cntPct, bytesPct);
+            source.sendSuccess(() -> row, false);
+            rank++;
         }
 
-        source.sendSuccess(() -> t("command.krypton_hybrid.list.total",
+        source.sendSuccess(() -> t(totalKey,
                 String.format("%,d", totalPackets),
                 NetworkTrafficStats.formatBytes(totalBytes)), false);
 
         return 1;
     }
 
-    private static int executeModsWireList(CommandContext<CommandSourceStack> ctx, int limit) {
-        CommandSourceStack source = ctx.getSource();
-        NetworkTrafficStats stats = NetworkTrafficStats.INSTANCE;
-
-        List<NetworkTrafficStats.TrafficEntry> top = stats.getTopModsByWireBytes(limit);
-        long totalPackets = stats.getTotalTrackedModWirePackets();
-        long totalBytes = stats.getTotalTrackedModWireBytes();
-
-        source.sendSuccess(() -> Component.literal("Krypton mods by compressed wire bytes (top " + limit + ")")
-                .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
-
-        int[] rank = {1};
-        for (NetworkTrafficStats.TrafficEntry entry : top) {
-            double bytesPct = totalBytes == 0 ? 0.0 : 100.0 * entry.totalBytes() / totalBytes;
-            int currentRank = rank[0]++;
-            source.sendSuccess(() -> Component.literal(String.format(
-                    "%-2d %-20s count=%,d wire=%s %.1f%%",
-                    currentRank,
-                    truncate(entry.key(), 20),
-                    entry.count(),
-                    NetworkTrafficStats.formatBytes(entry.totalBytes()),
-                    bytesPct
-            )).withStyle(ChatFormatting.AQUA), false);
-        }
-
-        source.sendSuccess(() -> Component.literal("Total: "
-                + String.format("%,d", totalPackets)
-                + " packets, "
-                + NetworkTrafficStats.formatBytes(totalBytes)), false);
-
-        return 1;
+    @FunctionalInterface
+    private interface RowRenderer {
+        MutableComponent render(int rank, NetworkTrafficStats.TrafficEntry entry, double cntPct, double bytesPct);
     }
 
     private static String truncate(String s, int maxLen) {

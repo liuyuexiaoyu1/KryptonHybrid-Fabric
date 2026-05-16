@@ -18,6 +18,11 @@
   "command.krypton_hybrid.mods.header": "=== Krypton Hybrid Mod Traffic (Top %1$s by %2$s | %3$s mods) ===",
   "command.krypton_hybrid.mods.row": "§8#%1$s §b%2$s §a%3$s§7 pkt §2(%4$s%%)§b %5$s §3(%6$s%%)",
   "command.krypton_hybrid.list.total": "§7Total: §a%1$s§7 packets | §b%2$s",
+  "command.krypton_hybrid.packets.wire.header": "Krypton packets by compressed wire bytes (top %1$s)",
+  "command.krypton_hybrid.packets.wire.row": "%1$s %2$s count=%3$s wire=%4$s %5$s%% avg=%6$s",
+  "command.krypton_hybrid.mods.wire.header": "Krypton mods by compressed wire bytes (top %1$s)",
+  "command.krypton_hybrid.mods.wire.row": "%1$s %2$s count=%3$s wire=%4$s %5$s%%",
+  "command.krypton_hybrid.list.total.wire": "Total: %1$s packets, %2$s",
 
   "command.krypton_hybrid.security.header": "§l=== Krypton Security Status ===",
   "command.krypton_hybrid.security.enabled": "§7Security: %1$s",

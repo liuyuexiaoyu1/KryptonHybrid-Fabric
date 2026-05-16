@@ -18,6 +18,11 @@
   "command.krypton_hybrid.mods.header": "=== Krypton Hybrid 模组流量 (按 %2$s 排序前 %1$s 项 | 共 %3$s 个模组) ===",
   "command.krypton_hybrid.mods.row": "§8#%1$s §b%2$s §a%3$s§7 包 §2(%4$s%%)§b %5$s §3(%6$s%%)",
   "command.krypton_hybrid.list.total": "§7合计: §a%1$s§7 包 | §b%2$s",
+  "command.krypton_hybrid.packets.wire.header": "Krypton 包 (按压缩后链路字节排序前 %1$s 项)",
+  "command.krypton_hybrid.packets.wire.row": "%1$s %2$s 包数=%3$s 链路=%4$s %5$s%% 平均=%6$s",
+  "command.krypton_hybrid.mods.wire.header": "Krypton 模组 (按压缩后链路字节排序前 %1$s 项)",
+  "command.krypton_hybrid.mods.wire.row": "%1$s %2$s 包数=%3$s 链路=%4$s %5$s%%",
+  "command.krypton_hybrid.list.total.wire": "合计: %1$s 包, %2$s",
 
   "command.krypton_hybrid.security.header": "§l=== Krypton 安全状态 ===",
   "command.krypton_hybrid.security.enabled": "§7安全防护: %1$s",
