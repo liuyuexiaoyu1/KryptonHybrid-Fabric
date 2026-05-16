@@ -8,8 +8,11 @@ import com.xinian.KryptonHybrid.shared.network.handshake.KryptonHelloPayload;
 import com.xinian.KryptonHybrid.shared.network.handshake.KryptonNetworkHandler;
 import com.xinian.KryptonHybrid.shared.network.control.PacketControlState;
 import com.xinian.KryptonHybrid.shared.network.compression.ZstdUtil;
+import com.xinian.KryptonHybrid.shared.network.payload.StatsRequestPayload;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
 import com.xinian.KryptonHybrid.shared.network.security.MotdCache;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -106,6 +109,19 @@ public final class KryptonHybrid {
                     (payload, ctx) -> { /* no-op on server */ }
             );
         }
+
+        // Stats GUI refresh — client → server. Decouples the dashboard's "Refresh"
+        // button from /krypton stats gui so the GUI never has to round-trip
+        // through the chat/command pipeline.
+        registrar.playToServer(
+                StatsRequestPayload.TYPE,
+                StatsRequestPayload.STREAM_CODEC,
+                (payload, ctx) -> ctx.enqueueWork(() -> {
+                    if (ctx.player() instanceof ServerPlayer player) {
+                        PacketDistributor.sendToPlayer(player, StatsSnapshotPayload.current());
+                    }
+                })
+        );
     }
 }
 
