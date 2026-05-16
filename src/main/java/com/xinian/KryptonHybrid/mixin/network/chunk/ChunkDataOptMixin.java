@@ -6,7 +6,6 @@ import com.xinian.KryptonHybrid.shared.network.control.KryptonWireFormat;
 import io.netty.buffer.Unpooled;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.spongepowered.asm.mixin.Final;
@@ -62,7 +61,7 @@ import java.util.List;
  *     0x00 + VarInt(len) + raw bytes   ??multi-value section
  *
  *   --- Block entities (unchanged) ---
- *   LIST_STREAM_CODEC encoded
+ *   1.20.1 FriendlyByteBuf collection encoding
  * </pre>
  *
  * <h3>Read-side compatibility</h3>
@@ -111,7 +110,7 @@ public abstract class ChunkDataOptMixin {
      * when chunk-data optimization is enabled.
      */
     @Inject(method = "write", at = @At("HEAD"), cancellable = true)
-    private void krypton$writeOptimized(RegistryFriendlyByteBuf buf, CallbackInfo ci) {
+    private void krypton$writeOptimized(FriendlyByteBuf buf, CallbackInfo ci) {
         if (!KryptonConfig.chunkOptEnabled
                 || !KryptonWireFormat.canWriteCurrentChunkData()
                 || this.krypton$sectionCount <= 0) return;
@@ -141,7 +140,8 @@ public abstract class ChunkDataOptMixin {
         }
 
         // --- Block entities (unchanged) ---
-        ClientboundLevelChunkPacketData.BlockEntityInfo.LIST_STREAM_CODEC.encode(buf, this.blockEntitiesData);
+        buf.writeCollection(this.blockEntitiesData, (packetBuf, info) ->
+                ((BlockEntityInfoAccessor) (Object) info).krypton$write(packetBuf));
 
 
         ci.cancel();

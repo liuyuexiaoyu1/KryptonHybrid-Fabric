@@ -1,13 +1,3 @@
-buildscript {
-    repositories {
-        maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
-    }
-}
-
 plugins {
     id 'eclipse'
     id 'idea'
@@ -15,8 +5,6 @@ plugins {
     id 'maven-publish'
     id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
 }
-
-apply plugin: 'org.spongepowered.mixin'
 
 version = mod_version
 group = mod_group_id
@@ -67,28 +55,7 @@ minecraft {
     }
 }
 
-mixin {
-    add sourceSets.main, "${mod_id}.refmap.json"
-    config "${mod_id}.mixins.json"
-}
-
 sourceSets.main.resources { srcDir 'src/generated/resources' }
-sourceSets.main.java {
-    exclude 'com/xinian/KryptonHybrid/mixin/network/chunk/ChunkDataOptMixin.java'
-    exclude 'com/xinian/KryptonHybrid/mixin/network/chunk/ClientboundLevelChunkWithLightPacketMixin.java'
-    exclude 'com/xinian/KryptonHybrid/mixin/network/chunk/ChunkMapDccMixin.java'
-    exclude 'com/xinian/KryptonHybrid/mixin/network/chunk/PlayerChunkSenderMixin.java'
-    exclude 'com/xinian/KryptonHybrid/mixin/network/microopt/FriendlyByteBufMixin.java'
-    exclude 'com/xinian/KryptonHybrid/mixin/network/microopt/VarIntMixin.java'
-    exclude 'com/xinian/KryptonHybrid/mixin/network/microopt/VarLongMixin.java'
-    exclude 'com/xinian/KryptonHybrid/mixin/network/pipeline/ConfigurationFinishPhaseMixin.java'
-    exclude 'com/xinian/KryptonHybrid/mixin/network/pipeline/IServerCommonListenerAccessor.java'
-    exclude 'com/xinian/KryptonHybrid/mixin/network/pipeline/LegacyQueryHandlerMixin.java'
-    exclude 'com/xinian/KryptonHybrid/shared/network/chunk/ChunkDataCodec.java'
-    exclude 'com/xinian/KryptonHybrid/shared/network/chunk/DelayedChunkCache.java'
-    exclude 'com/xinian/KryptonHybrid/shared/network/handshake/KryptonHelloConfigurationTask.java'
-    exclude 'com/xinian/KryptonHybrid/shared/network/handshake/KryptonNetworkHandler.java'
-}
 
 repositories {
     mavenCentral()
@@ -144,20 +111,29 @@ tasks.named('processResources', ProcessResources).configure {
     inputs.properties replaceProperties
 
     filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
-        expand replaceProperties + [project: project]
+        expand replaceProperties
     }
 }
 
+def refmapFile = layout.buildDirectory.file("tmp/compileJava/${mod_id}.refmap.json")
+def mixinMappingsFile = layout.buildDirectory.file('tmp/compileJava/compileJava-mappings.tsrg')
+def mcpToSrgFile = layout.buildDirectory.file('createMcpToSrg/output.tsrg')
+
 tasks.named('jar', Jar).configure {
+    dependsOn tasks.named('compileJava')
+    from(refmapFile) {
+        into ''
+    }
     manifest {
         attributes([
                 'Specification-Title'     : mod_id,
                 'Specification-Vendor'    : mod_authors,
                 'Specification-Version'   : '1',
-                'Implementation-Title'    : project.name,
-                'Implementation-Version'  : project.jar.archiveVersion,
+                'Implementation-Title'    : mod_name,
+                'Implementation-Version'  : archiveVersion.get(),
                 'Implementation-Vendor'   : mod_authors,
-                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+                'MixinConfigs'            : "${mod_id}.mixins.json"
         ])
     }
     finalizedBy 'reobfJar'
@@ -183,8 +159,22 @@ idea {
     }
 }
 
+tasks.configureEach {
+    if (name in ['downloadMcpConfig', 'reobfJar', 'reobfJarJar', 'jarJar']) {
+        notCompatibleWithConfigurationCache('ForgeGradle 1.20.1 userdev/reobf tasks access Project/Task state at execution time.')
+    }
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    dependsOn tasks.named('createMcpToSrg')
+    options.compilerArgs.addAll([
+            "-AoutRefMapFile=${refmapFile.get().asFile.absolutePath}",
+            "-AreobfTsrgFile=${mcpToSrgFile.get().asFile.absolutePath}",
+            "-AoutTsrgFile=${mixinMappingsFile.get().asFile.absolutePath}",
+            '-AdefaultObfuscationEnv=searge',
+            '-AmappingTypes=tsrg'
+    ])
 }
 
 tasks.register('trainZstdDict', JavaExec) {

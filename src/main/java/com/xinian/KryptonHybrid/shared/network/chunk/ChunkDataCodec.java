@@ -5,7 +5,7 @@ import io.netty.buffer.Unpooled;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.LongArrayTag;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.VarInt;
+import com.xinian.KryptonHybrid.shared.network.util.VarIntUtil;
 
 import java.util.Set;
 
@@ -137,18 +137,18 @@ public final class ChunkDataCodec {
 
         if (bpe == 0) {
             // SingleValuePalette: one VarInt (the palette entry)
-            VarInt.read(buf);
+            VarIntUtil.readVarInt(buf);
         } else if (bpe <= globalThreshold) {
             // LinearPalette or HashMapPalette: VarInt(size) + size ? VarInt(entry)
-            int paletteSize = VarInt.read(buf);
+            int paletteSize = VarIntUtil.readVarInt(buf);
             for (int i = 0; i < paletteSize; i++) {
-                VarInt.read(buf);
+                VarIntUtil.readVarInt(buf);
             }
         }
         // else: GlobalPalette ??no palette data
 
         // Storage: VarInt(longCount) + longCount ? 8 bytes
-        int longCount = VarInt.read(buf);
+        int longCount = VarIntUtil.readVarInt(buf);
         buf.skipBytes(longCount * 8);
 
         return buf.readerIndex() - start;
@@ -188,8 +188,8 @@ public final class ChunkDataCodec {
                 if (biomeBpe == 0) {
                     // Single-value biome: byte(0) + VarInt(biomeId) + VarInt(0)
                     src.readByte(); // skip bpe=0
-                    int biomeId = VarInt.read(src);
-                    VarInt.read(src); // skip storage length (always 0)
+                    int biomeId = VarIntUtil.readVarInt(src);
+                    VarIntUtil.readVarInt(src); // skip storage length (always 0)
                     biomesOut.writeByte(BIOME_SINGLE_VALUE);
                     biomesOut.writeVarInt(biomeId);
                 } else {
@@ -236,7 +236,7 @@ public final class ChunkDataCodec {
                 // ---- Biome data ----
                 byte biomeFlag = biomesSrc.readByte();
                 if (biomeFlag == BIOME_SINGLE_VALUE) {
-                    int biomeId = VarInt.read(biomesSrc);
+                    int biomeId = VarIntUtil.readVarInt(biomesSrc);
                     // Reconstruct single-value PalettedContainer:
                     // byte(0) + VarInt(biomeId) + VarInt(0)
                     out.writeByte(0);
@@ -244,7 +244,7 @@ public final class ChunkDataCodec {
                     out.writeVarInt(0);
                 } else {
                     // BIOME_RAW: VarInt(length) + raw bytes
-                    int biomeLen = VarInt.read(biomesSrc);
+                    int biomeLen = VarIntUtil.readVarInt(biomesSrc);
                     out.writeBytes(biomesSrc, biomeLen);
                 }
             }

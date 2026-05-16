@@ -5,12 +5,11 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.VarInt;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
 import net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData;
 import com.xinian.KryptonHybrid.shared.network.chunk.ChunkDataCodec;
+import com.xinian.KryptonHybrid.shared.network.util.VarIntUtil;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -48,13 +47,13 @@ public abstract class ClientboundLevelChunkWithLightPacketMixin {
      * otherwise falls back to the vanilla constructor unmodified.
      */
     @Redirect(
-            method = "<init>(Lnet/minecraft/network/RegistryFriendlyByteBuf;)V",
+            method = "<init>(Lnet/minecraft/network/FriendlyByteBuf;)V",
             at = @At(
                     value = "NEW",
                     target = "net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData"
             )
     )
-    private ClientboundLevelChunkPacketData readChunkData$krypton(RegistryFriendlyByteBuf buf, int x, int z) {
+    private ClientboundLevelChunkPacketData readChunkData$krypton(FriendlyByteBuf buf, int x, int z) {
         if (buf.getUnsignedByte(buf.readerIndex()) != KRYPTON_MARKER) {
             return new ClientboundLevelChunkPacketData(buf, x, z);
         }
@@ -77,9 +76,9 @@ public abstract class ClientboundLevelChunkWithLightPacketMixin {
         for (int i = 0; i < sectionCount; i++) {
             byte flag = peekSlice.readByte();
             if (flag == ChunkDataCodec.BIOME_SINGLE_VALUE) {
-                VarInt.read(peekSlice);
+                VarIntUtil.readVarInt(peekSlice);
             } else {
-                int len = VarInt.read(peekSlice);
+                int len = VarIntUtil.readVarInt(peekSlice);
                 peekSlice.skipBytes(len);
             }
         }
@@ -92,16 +91,16 @@ public abstract class ClientboundLevelChunkWithLightPacketMixin {
 
         // --- Block entities: decode from original buf, re-encode to vanilla buf ---
         List<ClientboundLevelChunkPacketData.BlockEntityInfo> blockEntities =
-                ClientboundLevelChunkPacketData.BlockEntityInfo.LIST_STREAM_CODEC.decode(buf);
+                buf.readList(BlockEntityInfoAccessor::krypton$create);
 
-        // --- Build a vanilla-format RegistryFriendlyByteBuf ---
-        RegistryFriendlyByteBuf vanillaBuf = new RegistryFriendlyByteBuf(
-                Unpooled.buffer(), buf.registryAccess(), buf.getConnectionType());
+        // --- Build a vanilla-format FriendlyByteBuf ---
+        FriendlyByteBuf vanillaBuf = new FriendlyByteBuf(Unpooled.buffer());
         try {
             vanillaBuf.writeNbt(heightmaps);
             vanillaBuf.writeVarInt(vanillaBuffer.length);
             vanillaBuf.writeBytes(vanillaBuffer);
-            ClientboundLevelChunkPacketData.BlockEntityInfo.LIST_STREAM_CODEC.encode(vanillaBuf, blockEntities);
+            vanillaBuf.writeCollection(blockEntities, (packetBuf, info) ->
+                    ((BlockEntityInfoAccessor) (Object) info).krypton$write(packetBuf));
             return new ClientboundLevelChunkPacketData(vanillaBuf, x, z);
         } finally {
             vanillaBuf.release();
@@ -118,7 +117,7 @@ public abstract class ClientboundLevelChunkWithLightPacketMixin {
      * back to the vanilla constructor unmodified.
      */
     @Redirect(
-            method = "<init>(Lnet/minecraft/network/RegistryFriendlyByteBuf;)V",
+            method = "<init>(Lnet/minecraft/network/FriendlyByteBuf;)V",
             at = @At(
                     value = "NEW",
                     target = "net/minecraft/network/protocol/game/ClientboundLightUpdatePacketData"

@@ -49,7 +49,8 @@ public abstract class ConnectionMixin implements ConfigurableAutoFlush {
             method = "tick",
             at = @At(
                     value = "INVOKE",
-                    target = "Lio/netty/channel/Channel;flush()Lio/netty/channel/Channel;"))
+                    target = "Lio/netty/channel/Channel;flush()Lio/netty/channel/Channel;",
+                    remap = false))
     private Channel kryptonfnp$suppressTickFlush(Channel channel) {
         AtomicBoolean af = this.kryptonfnp$autoFlush;
         if (af != null && !af.get()) {
@@ -69,7 +70,8 @@ public abstract class ConnectionMixin implements ConfigurableAutoFlush {
             at = @At(
                     value = "INVOKE",
                     target = "Lio/netty/channel/Channel;writeAndFlush(Ljava/lang/Object;)Lio/netty/channel/ChannelFuture;",
-                    ordinal = 0))
+                    ordinal = 0,
+                    remap = false))
     private ChannelFuture kryptonfnp$writeOrFlush(Channel channel, Object msg) {
         AtomicBoolean af = this.kryptonfnp$autoFlush;
         if (af != null && !af.get()) {
@@ -89,4 +91,3 @@ public abstract class ConnectionMixin implements ConfigurableAutoFlush {
         }
     }
 }
-

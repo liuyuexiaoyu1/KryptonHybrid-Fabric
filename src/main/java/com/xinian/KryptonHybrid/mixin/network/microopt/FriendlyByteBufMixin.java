@@ -6,7 +6,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.handler.codec.DecoderException;
 import io.netty.handler.codec.EncoderException;
-import net.minecraft.network.codec.StreamDecoder;
 import com.xinian.KryptonHybrid.shared.network.util.VarIntUtil;
 import com.xinian.KryptonHybrid.shared.network.util.VarLongUtil;
 import net.minecraft.network.FriendlyByteBuf;
@@ -127,7 +126,7 @@ public abstract class FriendlyByteBufMixin extends ByteBuf {
     @Inject(method = "readCollection", at = @At("HEAD"), cancellable = true)
     private <T, C extends Collection<T>> void readCollection$kryptonGuard(
             IntFunction<C> collectionFactory,
-            StreamDecoder<? super FriendlyByteBuf, T> elementReader,
+            FriendlyByteBuf.Reader<T> elementReader,
             CallbackInfoReturnable<C> cir) {
         if (!KryptonConfig.securityEnabled || !KryptonConfig.securityReadLimitsEnabled) {
             return;
@@ -143,16 +142,16 @@ public abstract class FriendlyByteBufMixin extends ByteBuf {
         C collection = collectionFactory.apply(count);
         FriendlyByteBuf self = (FriendlyByteBuf) (Object) this;
         for (int i = 0; i < count; i++) {
-            collection.add(elementReader.decode(self));
+            collection.add(elementReader.apply(self));
         }
         cir.setReturnValue(collection);
     }
 
-    @Inject(method = "readMap(Ljava/util/function/IntFunction;Lnet/minecraft/network/codec/StreamDecoder;Lnet/minecraft/network/codec/StreamDecoder;)Ljava/util/Map;", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "readMap(Ljava/util/function/IntFunction;Lnet/minecraft/network/FriendlyByteBuf$Reader;Lnet/minecraft/network/FriendlyByteBuf$Reader;)Ljava/util/Map;", at = @At("HEAD"), cancellable = true)
     private <K, V, M extends Map<K, V>> void readMap$kryptonGuard(
             IntFunction<M> mapFactory,
-            StreamDecoder<? super FriendlyByteBuf, K> keyReader,
-            StreamDecoder<? super FriendlyByteBuf, V> valueReader,
+            FriendlyByteBuf.Reader<K> keyReader,
+            FriendlyByteBuf.Reader<V> valueReader,
             CallbackInfoReturnable<M> cir) {
         if (!KryptonConfig.securityEnabled || !KryptonConfig.securityReadLimitsEnabled) {
             return;
@@ -168,15 +167,15 @@ public abstract class FriendlyByteBufMixin extends ByteBuf {
         M map = mapFactory.apply(count);
         FriendlyByteBuf self = (FriendlyByteBuf) (Object) this;
         for (int i = 0; i < count; i++) {
-            map.put(keyReader.decode(self), valueReader.decode(self));
+            map.put(keyReader.apply(self), valueReader.apply(self));
         }
         cir.setReturnValue(map);
     }
 
-    @Inject(method = "readMap(Lnet/minecraft/network/codec/StreamDecoder;Lnet/minecraft/network/codec/StreamDecoder;)Ljava/util/Map;", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "readMap(Lnet/minecraft/network/FriendlyByteBuf$Reader;Lnet/minecraft/network/FriendlyByteBuf$Reader;)Ljava/util/Map;", at = @At("HEAD"), cancellable = true)
     private <K, V> void readMapSimple$kryptonGuard(
-            StreamDecoder<? super FriendlyByteBuf, K> keyReader,
-            StreamDecoder<? super FriendlyByteBuf, V> valueReader,
+            FriendlyByteBuf.Reader<K> keyReader,
+            FriendlyByteBuf.Reader<V> valueReader,
             CallbackInfoReturnable<Map<K, V>> cir) {
         if (!KryptonConfig.securityEnabled || !KryptonConfig.securityReadLimitsEnabled) {
             return;
@@ -192,7 +191,7 @@ public abstract class FriendlyByteBufMixin extends ByteBuf {
         Map<K, V> map = new HashMap<>(Math.max(1, count));
         FriendlyByteBuf self = (FriendlyByteBuf) (Object) this;
         for (int i = 0; i < count; i++) {
-            map.put(keyReader.decode(self), valueReader.decode(self));
+            map.put(keyReader.apply(self), valueReader.apply(self));
         }
         cir.setReturnValue(map);
     }

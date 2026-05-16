@@ -3,6 +3,7 @@ package com.xinian.KryptonHybrid.mixin.network.pipeline;
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import com.xinian.KryptonHybrid.shared.network.control.PacketControlPhase;
 import com.xinian.KryptonHybrid.shared.network.control.PacketControlState;
+import com.xinian.KryptonHybrid.shared.network.handshake.KryptonHelloPayload;
 import com.xinian.KryptonHybrid.shared.network.security.HandshakeTimeoutHandler;
 import net.minecraft.network.Connection;
 import net.minecraft.server.network.ServerLoginPacketListenerImpl;
@@ -24,15 +25,17 @@ public class LoginTimeoutAdvanceMixin {
     Connection connection;
 
     /**
-     * When login acknowledgement is handled, the connection transitions out of
-     * the login phase.  Advance the timeout to PLAY stage.
+     * Forge 1.20.1 has no configuration phase; when accepted login completes,
+     * the connection is about to become a PLAY listener.
      */
-    @Inject(method = "handleLoginAcknowledgement", at = @At("TAIL"))
+    @Inject(method = "handleAcceptedLogin", at = @At("TAIL"))
     private void krypton$advanceToPlayTimeout(CallbackInfo ci) {
         if (!KryptonConfig.securityEnabled) return;
         HandshakeTimeoutHandler.advanceStage(
                 this.connection.channel(), HandshakeTimeoutHandler.Stage.PLAY);
-        PacketControlState.get(this.connection.channel()).setPhase(PacketControlPhase.CONFIGURATION);
+        PacketControlState state = PacketControlState.get(this.connection.channel());
+        state.setPhase(PacketControlPhase.PLAY);
+        state.markHelloNegotiated(KryptonHelloPayload.current().featureFlags());
     }
 }
 
