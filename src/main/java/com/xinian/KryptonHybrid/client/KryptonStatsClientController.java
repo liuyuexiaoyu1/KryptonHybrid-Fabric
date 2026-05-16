@@ -4,10 +4,13 @@ import com.mojang.blaze3d.platform.InputConstants;
 import com.xinian.KryptonHybrid.client.overlay.KryptonHudOverlay;
 import com.xinian.KryptonHybrid.client.screen.KryptonStatsScreen;
 import com.xinian.KryptonHybrid.KryptonHybrid;
+import com.xinian.KryptonHybrid.shared.network.control.KryptonHelloPayload;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
+import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotRequestPayload;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
@@ -58,6 +61,17 @@ public final class KryptonStatsClientController {
         modEventBus.addListener(KryptonStatsClientController::onRegisterKeyMappings);
         modEventBus.addListener(KryptonStatsClientController::onRegisterGuiLayers);
         MinecraftForge.EVENT_BUS.addListener(KryptonStatsClientController::onClientTick);
+        MinecraftForge.EVENT_BUS.addListener(KryptonStatsClientController::onClientLoggedIn);
+    }
+
+    /**
+     * Sends our feature-flag hello to the server right after entering the world.
+     * Required for the server-side wire-format gates in {@code KryptonWireFormat}
+     * — connections that don't receive a hello stay on vanilla format. See
+     * {@code KryptonHybrid#handleClientHello}.
+     */
+    private static void onClientLoggedIn(ClientPlayerNetworkEvent.LoggingIn event) {
+        KryptonHybrid.NETWORK.sendToServer(KryptonHelloPayload.current());
     }
 
     private static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
@@ -143,7 +157,7 @@ public final class KryptonStatsClientController {
         lastRequestAtMs = now;
         lastRequestSentAtMs = now;
         snapshotRequestCount++;
-        minecraft.player.connection.sendUnsignedCommand("krypton stats gui");
+        KryptonHybrid.NETWORK.sendToServer(StatsSnapshotRequestPayload.INSTANCE);
     }
 
     public static void open(StatsSnapshotPayload payload) {

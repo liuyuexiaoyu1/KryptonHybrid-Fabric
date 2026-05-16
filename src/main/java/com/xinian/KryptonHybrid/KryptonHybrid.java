@@ -4,7 +4,10 @@ import com.xinian.KryptonHybrid.command.KryptonStatsCommand;
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import com.xinian.KryptonHybrid.shared.KryptonSharedBootstrap;
 import com.xinian.KryptonHybrid.shared.network.compression.ZstdUtil;
+import com.xinian.KryptonHybrid.shared.network.control.KryptonHelloPayload;
+import com.xinian.KryptonHybrid.shared.network.control.PacketControlState;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
+import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotRequestPayload;
 import com.xinian.KryptonHybrid.shared.network.security.MotdCache;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -82,6 +85,16 @@ public final class KryptonHybrid {
                 .decoder(StatsSnapshotPayload::decode)
                 .consumerMainThread(KryptonHybrid::handleStatsSnapshot)
                 .add();
+        NETWORK.messageBuilder(KryptonHelloPayload.class, 1, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(KryptonHelloPayload::encode)
+                .decoder(KryptonHelloPayload::decode)
+                .consumerMainThread(KryptonHybrid::handleClientHello)
+                .add();
+        NETWORK.messageBuilder(StatsSnapshotRequestPayload.class, 2, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(StatsSnapshotRequestPayload::encode)
+                .decoder(StatsSnapshotRequestPayload::decode)
+                .consumerMainThread(KryptonHybrid::handleStatsSnapshotRequest)
+                .add();
     }
 
     private static void handleStatsSnapshot(StatsSnapshotPayload payload, Supplier<NetworkEvent.Context> ctxSupplier) {
@@ -91,6 +104,37 @@ public final class KryptonHybrid {
                 com.xinian.KryptonHybrid.client.KryptonStatsClientPayloadRegistration.handleSnapshot(payload);
             }
         });
+        ctx.setPacketHandled(true);
+    }
+
+    /**
+     * Server-side handler for the client's hello. Stamps the connection's
+     * {@link PacketControlState} with the client-reported feature flags so
+     * downstream wire-format mixins can gate optimizations per-connection.
+     * Vanilla clients never send this packet, so their {@code PacketControlState}
+     * stays un-negotiated and the server emits vanilla wire format to them.
+     */
+    private static void handleClientHello(KryptonHelloPayload payload, Supplier<NetworkEvent.Context> ctxSupplier) {
+        NetworkEvent.Context ctx = ctxSupplier.get();
+        ServerPlayer sender = ctx.getSender();
+        if (sender != null) {
+            PacketControlState.get(sender.connection.connection.channel())
+                    .markHelloNegotiated(payload.featureFlags());
+        }
+        ctx.setPacketHandled(true);
+    }
+
+    /**
+     * Server-side handler for the client's snapshot request. Builds and pushes
+     * a fresh {@link StatsSnapshotPayload} back to the sender. Open to any
+     * connected player so the HUD auto-refresh works without op permission.
+     */
+    private static void handleStatsSnapshotRequest(StatsSnapshotRequestPayload payload, Supplier<NetworkEvent.Context> ctxSupplier) {
+        NetworkEvent.Context ctx = ctxSupplier.get();
+        ServerPlayer sender = ctx.getSender();
+        if (sender != null) {
+            sendStatsSnapshot(sender, StatsSnapshotPayload.current());
+        }
         ctx.setPacketHandled(true);
     }
 

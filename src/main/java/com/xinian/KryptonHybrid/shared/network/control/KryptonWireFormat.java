@@ -2,7 +2,6 @@ package com.xinian.KryptonHybrid.shared.network.control;
 
 import io.netty.channel.Channel;
 import net.minecraft.network.Connection;
-import com.xinian.KryptonHybrid.shared.network.handshake.KryptonHelloPayload;
 
 /**
  * Central checks for connection-scoped Krypton wire-format capability.

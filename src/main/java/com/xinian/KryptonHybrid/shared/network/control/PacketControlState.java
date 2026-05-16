@@ -11,7 +11,6 @@ public final class PacketControlState {
             AttributeKey.valueOf("krypton_packet_control_state");
 
     private volatile PacketControlPhase phase = PacketControlPhase.CONNECTED;
-    private volatile boolean helloAvailable;
     private volatile boolean helloNegotiated;
     private volatile int remoteFeatureFlags;
 
@@ -46,20 +45,9 @@ public final class PacketControlState {
         return this.helloNegotiated && (this.remoteFeatureFlags & featureFlag) != 0;
     }
 
-    public boolean isHelloAvailable() {
-        return this.helloAvailable;
-    }
-
-    public void markHelloAvailable() {
-        this.helloAvailable = true;
-    }
-
     public void markHelloNegotiated(int remoteFeatureFlags) {
-        this.helloAvailable = true;
         this.helloNegotiated = true;
         this.remoteFeatureFlags = remoteFeatureFlags;
     }
-
-
 }
 

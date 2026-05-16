@@ -3,7 +3,6 @@ package com.xinian.KryptonHybrid.mixin.network.pipeline;
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import com.xinian.KryptonHybrid.shared.network.control.PacketControlPhase;
 import com.xinian.KryptonHybrid.shared.network.control.PacketControlState;
-import com.xinian.KryptonHybrid.shared.network.handshake.KryptonHelloPayload;
 import com.xinian.KryptonHybrid.shared.network.security.HandshakeTimeoutHandler;
 import net.minecraft.network.Connection;
 import net.minecraft.server.network.ServerLoginPacketListenerImpl;
@@ -27,15 +26,21 @@ public class LoginTimeoutAdvanceMixin {
     /**
      * Forge 1.20.1 has no configuration phase; when accepted login completes,
      * the connection is about to become a PLAY listener.
+     *
+     * <p>Hello negotiation is intentionally <em>not</em> performed here. Wire-format
+     * optimizations stay disabled until the client sends
+     * {@code KryptonHelloPayload} on {@code KryptonHybrid.NETWORK}, which the
+     * server-side handler converts into
+     * {@link PacketControlState#markHelloNegotiated(int)} with the client's
+     * actual feature flags. Vanilla clients never send one, so they continue
+     * receiving vanilla wire format.</p>
      */
     @Inject(method = "handleAcceptedLogin", at = @At("TAIL"))
     private void krypton$advanceToPlayTimeout(CallbackInfo ci) {
         if (!KryptonConfig.securityEnabled) return;
         HandshakeTimeoutHandler.advanceStage(
                 this.connection.channel(), HandshakeTimeoutHandler.Stage.PLAY);
-        PacketControlState state = PacketControlState.get(this.connection.channel());
-        state.setPhase(PacketControlPhase.PLAY);
-        state.markHelloNegotiated(KryptonHelloPayload.current().featureFlags());
+        PacketControlState.get(this.connection.channel()).setPhase(PacketControlPhase.PLAY);
     }
 }
 

@@ -1,8 +1,17 @@
-package com.xinian.KryptonHybrid.shared.network.handshake;
+package com.xinian.KryptonHybrid.shared.network.control;
 
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
+import net.minecraft.network.FriendlyByteBuf;
 
-/** Lightweight feature flag container used by Forge 1.20.1 wire-format gates. */
+/**
+ * Feature-flag bitmask exchanged at PLAY-phase login so the server can decide
+ * which Krypton wire-format optimizations are safe to emit on each connection.
+ *
+ * <p>The client sends one of these to the server immediately after entering the
+ * world via {@code KryptonHybrid.NETWORK}; the server stores the received flags
+ * in {@link PacketControlState#markHelloNegotiated(int)}. Connections that have
+ * not negotiated are treated as vanilla — see {@link KryptonWireFormat}.</p>
+ */
 public record KryptonHelloPayload(int featureFlags) {
     public static final int FEATURE_CHUNK_DATA = 1;
     public static final int FEATURE_LIGHT_DATA = 1 << 1;
@@ -20,6 +29,14 @@ public record KryptonHelloPayload(int featureFlags) {
             flags |= FEATURE_BLOCK_ENTITY_DELTA;
         }
         return new KryptonHelloPayload(flags);
+    }
+
+    public void encode(FriendlyByteBuf buf) {
+        buf.writeVarInt(this.featureFlags);
+    }
+
+    public static KryptonHelloPayload decode(FriendlyByteBuf buf) {
+        return new KryptonHelloPayload(buf.readVarInt());
     }
 
     public boolean supportsChunkData() {
