@@ -58,12 +58,13 @@ public abstract class ChunkMapDccMixin {
             ServerPlayer player,
             ChunkTrackingView requestedView
     ) {
+        net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dim = this.level.dimension();
         ChunkTrackingView.difference(
                 oldView,
                 newView,
                 pos -> {
                     // Cache hit: the client still has this chunk, so skip resend.
-                    if (!DelayedChunkCache.INSTANCE.onChunkEnter(player, pos)) {
+                    if (!DelayedChunkCache.INSTANCE.onChunkEnter(player, dim, pos)) {
                         this.markChunkPendingToSend(player, pos);
                     }
                 },
@@ -75,7 +76,7 @@ public abstract class ChunkMapDccMixin {
                     }
 
                     // Otherwise, delay the untrack unless the cache rejects this chunk.
-                    if (!DelayedChunkCache.INSTANCE.onChunkLeave(player, pos)) {
+                    if (!DelayedChunkCache.INSTANCE.onChunkLeave(player, dim, pos)) {
                         krypton$dropChunkNow(player, pos);
                     }
                 }
@@ -92,7 +93,7 @@ public abstract class ChunkMapDccMixin {
     /** Evicts stale DCC cache entries and performs deferred {@code untrackChunk} calls. */
     @Inject(method = "tick()V", at = @At("RETURN"))
     private void tick$evictDccCache(CallbackInfo ci) {
-        DelayedChunkCache.INSTANCE.tick(this.level.players(), ChunkMapDccMixin::dropChunkDeferred);
+        DelayedChunkCache.INSTANCE.tick(this.level.dimension(), this.level.players(), ChunkMapDccMixin::dropChunkDeferred);
     }
 
     private static void dropChunkDeferred(ServerPlayer player, ChunkPos chunkPos) {
