@@ -726,7 +726,7 @@ public final class KryptonForgeConfig {
 
     /**
      * Copies the current config values into {@link KryptonConfig}.
-     * Called from {@link kryptonhybrid} in response to
+     * Called from {@link KryptonHybrid} in response to
      * {@link ModConfigEvent.Loading} and {@link ModConfigEvent.Reloading}.
      */
     public void bake() {

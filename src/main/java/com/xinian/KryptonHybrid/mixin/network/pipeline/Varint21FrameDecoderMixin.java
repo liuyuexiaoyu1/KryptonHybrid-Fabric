@@ -2,7 +2,7 @@ package com.xinian.KryptonHybrid.mixin.network.pipeline;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
-import com.xinian.KryptonHybrid.shared.network.NetworkTrafficStats;
+import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 import com.xinian.KryptonHybrid.shared.network.security.SecurityMetrics;
 import com.xinian.KryptonHybrid.shared.network.util.QuietDecoderException;
 import net.minecraft.network.Varint21FrameDecoder;

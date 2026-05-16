@@ -1,6 +1,6 @@
 package com.xinian.KryptonHybrid.mixin.network.flushconsolidation;
 
-import com.xinian.KryptonHybrid.shared.network.BroadcastBundleCollector;
+import com.xinian.KryptonHybrid.shared.network.broadcast.BroadcastBundleCollector;
 import com.xinian.KryptonHybrid.shared.network.util.AutoFlushUtil;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;

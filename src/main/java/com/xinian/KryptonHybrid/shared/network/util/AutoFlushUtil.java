@@ -1,6 +1,6 @@
 package com.xinian.KryptonHybrid.shared.network.util;
 
-import com.xinian.KryptonHybrid.shared.network.ConfigurableAutoFlush;
+import com.xinian.KryptonHybrid.shared.network.flow.ConfigurableAutoFlush;
 import net.minecraft.network.Connection;
 import net.minecraft.server.level.ServerPlayer;
 

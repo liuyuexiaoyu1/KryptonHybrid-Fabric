@@ -1,7 +1,7 @@
 package com.xinian.KryptonHybrid.shared.network.payload;
 
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
-import com.xinian.KryptonHybrid.shared.network.NetworkTrafficStats;
+import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 import com.xinian.KryptonHybrid.shared.network.security.SecurityMetrics;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -10,7 +10,6 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Server → client snapshot of {@link NetworkTrafficStats} used to drive the
@@ -207,8 +206,8 @@ public record StatsSnapshotPayload(
     /** Builds a snapshot from current server-side counters. */
     public static StatsSnapshotPayload current() {
         NetworkTrafficStats s = NetworkTrafficStats.INSTANCE;
-        Map.Entry<String, NetworkTrafficStats.TypeStats> hottestPacket = s.getTopTypeByBytes();
-        Map.Entry<String, NetworkTrafficStats.TypeStats> hottestMod = s.getTopModByBytes();
+        NetworkTrafficStats.TrafficEntry hottestPacket = s.getTopTypeByBytes();
+        NetworkTrafficStats.TrafficEntry hottestMod = s.getTopModByBytes();
         SecurityMetrics sec = SecurityMetrics.INSTANCE;
         long totalTrackedPackets = s.getTotalTrackedTypePackets();
         double trackedCoverage = s.getPacketsSent() == 0 ? 0.0 : 100.0 * totalTrackedPackets / (double) s.getPacketsSent();
@@ -234,12 +233,12 @@ public record StatsSnapshotPayload(
                 s.getTotalTrackedModPackets(),
                 s.getTotalTrackedModBytes(),
                 trackedCoverage,
-                hottestPacket != null ? hottestPacket.getKey() : "-",
-                hottestPacket != null ? hottestPacket.getValue().getCount() : 0L,
-                hottestPacket != null ? hottestPacket.getValue().getTotalBytes() : 0L,
-                hottestMod != null ? hottestMod.getKey() : "-",
-                hottestMod != null ? hottestMod.getValue().getCount() : 0L,
-                hottestMod != null ? hottestMod.getValue().getTotalBytes() : 0L,
+                hottestPacket != null ? hottestPacket.key() : "-",
+                hottestPacket != null ? hottestPacket.count() : 0L,
+                hottestPacket != null ? hottestPacket.totalBytes() : 0L,
+                hottestMod != null ? hottestMod.key() : "-",
+                hottestMod != null ? hottestMod.count() : 0L,
+                hottestMod != null ? hottestMod.totalBytes() : 0L,
                 KryptonConfig.compressionAlgorithm.name(),
                 KryptonConfig.securityEnabled,
                 sec.getConnectionsRateLimited(),
@@ -272,10 +271,10 @@ public record StatsSnapshotPayload(
     }
 
     private static List<ModEntry> buildTopMods(NetworkTrafficStats s) {
-        List<Map.Entry<String, NetworkTrafficStats.TypeStats>> top = s.getTopModsByBytes(MAX_TOP_MODS);
+        List<NetworkTrafficStats.TrafficEntry> top = s.getTopModsByBytes(MAX_TOP_MODS);
         List<ModEntry> out = new ArrayList<>(top.size());
-        for (Map.Entry<String, NetworkTrafficStats.TypeStats> e : top) {
-            out.add(new ModEntry(e.getKey(), e.getValue().getCount(), e.getValue().getTotalBytes()));
+        for (NetworkTrafficStats.TrafficEntry e : top) {
+            out.add(new ModEntry(e.key(), e.count(), e.totalBytes()));
         }
         return out;
     }

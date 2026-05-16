@@ -3,9 +3,9 @@ package com.xinian.KryptonHybrid;
 import com.xinian.KryptonHybrid.command.KryptonStatsCommand;
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import com.xinian.KryptonHybrid.shared.KryptonSharedBootstrap;
-import com.xinian.KryptonHybrid.shared.network.KryptonHelloConfigurationTask;
-import com.xinian.KryptonHybrid.shared.network.KryptonHelloPayload;
-import com.xinian.KryptonHybrid.shared.network.KryptonNetworkHandler;
+import com.xinian.KryptonHybrid.shared.network.handshake.KryptonHelloConfigurationTask;
+import com.xinian.KryptonHybrid.shared.network.handshake.KryptonHelloPayload;
+import com.xinian.KryptonHybrid.shared.network.handshake.KryptonNetworkHandler;
 import com.xinian.KryptonHybrid.shared.network.control.PacketControlState;
 import com.xinian.KryptonHybrid.shared.network.compression.ZstdUtil;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
@@ -23,11 +23,11 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.DirectionalPayloadHandler;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
-@Mod(kryptonhybrid.MODID)
-public class kryptonhybrid {
+@Mod(KryptonHybrid.MODID)
+public final class KryptonHybrid {
     public static final String MODID = "krypton_hybrid";
 
-    public kryptonhybrid(IEventBus modEventBus, ModContainer modContainer) {
+    public KryptonHybrid(IEventBus modEventBus, ModContainer modContainer) {
         modContainer.registerConfig(ModConfig.Type.COMMON, KryptonForgeConfig.SPEC);
 
         modEventBus.addListener(this::onConfigLoad);

@@ -1,9 +1,7 @@
-package com.xinian.KryptonHybrid.shared.network;
+package com.xinian.KryptonHybrid.shared.network.broadcast;
 
 import com.xinian.KryptonHybrid.mixin.network.pipeline.PacketEncoderMixin;
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
-
-import java.util.IdentityHashMap;
 
 /**
  * Thread-local cache that avoids redundant packet serialization when the same
@@ -40,8 +38,8 @@ public final class BroadcastSerializationCache {
     /** Maximum cached entries before a full clear.  256 covers a typical tick. */
     private static final int MAX_ENTRIES = 256;
 
-    private static final ThreadLocal<IdentityHashMap<Object, byte[]>> CACHE =
-            ThreadLocal.withInitial(IdentityHashMap::new);
+    private static final ThreadLocalIdentityCache<byte[]> CACHE =
+            new ThreadLocalIdentityCache<>(MAX_ENTRIES, () -> KryptonConfig.broadcastCacheEnabled);
 
     /**
      * Hand-off slot used to pass the {@link net.minecraft.network.protocol.Packet}
@@ -75,8 +73,7 @@ public final class BroadcastSerializationCache {
      * @return cached bytes, or {@code null} if not cached
      */
     public static byte[] get(Object packet) {
-        if (!KryptonConfig.broadcastCacheEnabled) return null;
-        return CACHE.get().get(packet);
+        return CACHE.get(packet);
     }
 
     /**
@@ -86,17 +83,12 @@ public final class BroadcastSerializationCache {
      * @param bytes  the serialized bytes (packet ID + payload)
      */
     public static void put(Object packet, byte[] bytes) {
-        if (!KryptonConfig.broadcastCacheEnabled) return;
-        IdentityHashMap<Object, byte[]> map = CACHE.get();
-        if (map.size() >= MAX_ENTRIES) {
-            map.clear();
-        }
-        map.put(packet, bytes);
+        CACHE.put(packet, bytes);
     }
 
     /** Clears the entire cache for the current thread. */
     public static void clear() {
-        CACHE.get().clear();
+        CACHE.clear();
     }
 }
 

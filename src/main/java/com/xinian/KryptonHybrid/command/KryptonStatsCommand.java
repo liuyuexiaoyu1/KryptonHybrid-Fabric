@@ -5,7 +5,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
-import com.xinian.KryptonHybrid.shared.network.NetworkTrafficStats;
+import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 import com.xinian.KryptonHybrid.shared.network.compression.ZstdSampleRecorder;
 import com.xinian.KryptonHybrid.shared.network.compression.ZstdUtil;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
@@ -20,7 +20,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.List;
-import java.util.Map;
 
 public final class KryptonStatsCommand {
 
@@ -138,7 +137,7 @@ public final class KryptonStatsCommand {
         CommandSourceStack source = ctx.getSource();
         NetworkTrafficStats stats = NetworkTrafficStats.INSTANCE;
 
-        List<Map.Entry<String, NetworkTrafficStats.TypeStats>> top =
+        List<NetworkTrafficStats.TrafficEntry> top =
             byCount ? stats.getTopByCount(limit) : stats.getTopByBytes(limit);
 
         long totalPackets = stats.getTotalTrackedTypePackets();
@@ -153,21 +152,20 @@ public final class KryptonStatsCommand {
                 .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
 
         int[] rank = {1};
-        for (Map.Entry<String, NetworkTrafficStats.TypeStats> entry : top) {
-            NetworkTrafficStats.TypeStats ts = entry.getValue();
-            double cntPct   = totalPackets == 0 ? 0.0 : 100.0 * ts.getCount() / totalPackets;
-            double bytesPct = totalBytes   == 0 ? 0.0 : 100.0 * ts.getTotalBytes() / totalBytes;
-            String key = entry.getKey();
+        for (NetworkTrafficStats.TrafficEntry entry : top) {
+            double cntPct   = totalPackets == 0 ? 0.0 : 100.0 * entry.count() / totalPackets;
+            double bytesPct = totalBytes   == 0 ? 0.0 : 100.0 * entry.totalBytes() / totalBytes;
+            String key = entry.key();
             ChatFormatting nameColor = key.startsWith("custom:") ? ChatFormatting.YELLOW : ChatFormatting.AQUA;
             int currentRank = rank[0]++;
             source.sendSuccess(() -> t("command.krypton_hybrid.packets.row",
                     String.format("%-2d", currentRank),
                     Component.literal(truncate(key, 44)).withStyle(nameColor),
-                    String.format("%,d", ts.getCount()),
+                    String.format("%,d", entry.count()),
                     String.format("%.1f", cntPct),
-                    NetworkTrafficStats.formatBytes(ts.getTotalBytes()),
+                    NetworkTrafficStats.formatBytes(entry.totalBytes()),
                     String.format("%.1f", bytesPct),
-                    String.format("%.0f", ts.getAvgBytes())), false);
+                    String.format("%.0f", entry.avgBytes())), false);
         }
 
         source.sendSuccess(() -> t("command.krypton_hybrid.list.total",
@@ -181,7 +179,7 @@ public final class KryptonStatsCommand {
         CommandSourceStack source = ctx.getSource();
         NetworkTrafficStats stats = NetworkTrafficStats.INSTANCE;
 
-        List<Map.Entry<String, NetworkTrafficStats.TypeStats>> top = stats.getTopByWireBytes(limit);
+        List<NetworkTrafficStats.TrafficEntry> top = stats.getTopByWireBytes(limit);
         long totalPackets = stats.getTotalTrackedTypeWirePackets();
         long totalBytes = stats.getTotalTrackedTypeWireBytes();
 
@@ -189,20 +187,19 @@ public final class KryptonStatsCommand {
                 .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
 
         int[] rank = {1};
-        for (Map.Entry<String, NetworkTrafficStats.TypeStats> entry : top) {
-            NetworkTrafficStats.TypeStats ts = entry.getValue();
-            double bytesPct = totalBytes == 0 ? 0.0 : 100.0 * ts.getTotalBytes() / totalBytes;
-            String key = entry.getKey();
+        for (NetworkTrafficStats.TrafficEntry entry : top) {
+            double bytesPct = totalBytes == 0 ? 0.0 : 100.0 * entry.totalBytes() / totalBytes;
+            String key = entry.key();
             ChatFormatting nameColor = key.startsWith("custom:") ? ChatFormatting.YELLOW : ChatFormatting.AQUA;
             int currentRank = rank[0]++;
             source.sendSuccess(() -> Component.literal(String.format(
                     "%-2d %s count=%,d wire=%s %.1f%% avg=%s",
                     currentRank,
                     truncate(key, 44),
-                    ts.getCount(),
-                    NetworkTrafficStats.formatBytes(ts.getTotalBytes()),
+                    entry.count(),
+                    NetworkTrafficStats.formatBytes(entry.totalBytes()),
                     bytesPct,
-                    NetworkTrafficStats.formatBytes((long) ts.getAvgBytes())
+                    NetworkTrafficStats.formatBytes((long) entry.avgBytes())
             )).withStyle(nameColor), false);
         }
 
@@ -218,7 +215,7 @@ public final class KryptonStatsCommand {
         CommandSourceStack source = ctx.getSource();
         NetworkTrafficStats stats = NetworkTrafficStats.INSTANCE;
 
-        List<Map.Entry<String, NetworkTrafficStats.TypeStats>> top =
+        List<NetworkTrafficStats.TrafficEntry> top =
             byCount ? stats.getTopModsByCount(limit) : stats.getTopModsByBytes(limit);
 
         long totalPackets = stats.getTotalTrackedTypePackets();
@@ -233,17 +230,16 @@ public final class KryptonStatsCommand {
                 .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
 
         int[] rank = {1};
-        for (Map.Entry<String, NetworkTrafficStats.TypeStats> entry : top) {
-            NetworkTrafficStats.TypeStats ts = entry.getValue();
-            double cntPct   = totalPackets == 0 ? 0.0 : 100.0 * ts.getCount()      / totalPackets;
-            double bytesPct = totalBytes   == 0 ? 0.0 : 100.0 * ts.getTotalBytes() / totalBytes;
+        for (NetworkTrafficStats.TrafficEntry entry : top) {
+            double cntPct   = totalPackets == 0 ? 0.0 : 100.0 * entry.count()      / totalPackets;
+            double bytesPct = totalBytes   == 0 ? 0.0 : 100.0 * entry.totalBytes() / totalBytes;
             int currentRank = rank[0]++;
             source.sendSuccess(() -> t("command.krypton_hybrid.mods.row",
                     String.format("%-2d", currentRank),
-                    String.format("%-20s", entry.getKey()),
-                    String.format("%,d", ts.getCount()),
+                    String.format("%-20s", entry.key()),
+                    String.format("%,d", entry.count()),
                     String.format("%.1f", cntPct),
-                    NetworkTrafficStats.formatBytes(ts.getTotalBytes()),
+                    NetworkTrafficStats.formatBytes(entry.totalBytes()),
                     String.format("%.1f", bytesPct)), false);
         }
 
@@ -258,7 +254,7 @@ public final class KryptonStatsCommand {
         CommandSourceStack source = ctx.getSource();
         NetworkTrafficStats stats = NetworkTrafficStats.INSTANCE;
 
-        List<Map.Entry<String, NetworkTrafficStats.TypeStats>> top = stats.getTopModsByWireBytes(limit);
+        List<NetworkTrafficStats.TrafficEntry> top = stats.getTopModsByWireBytes(limit);
         long totalPackets = stats.getTotalTrackedModWirePackets();
         long totalBytes = stats.getTotalTrackedModWireBytes();
 
@@ -266,16 +262,15 @@ public final class KryptonStatsCommand {
                 .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
 
         int[] rank = {1};
-        for (Map.Entry<String, NetworkTrafficStats.TypeStats> entry : top) {
-            NetworkTrafficStats.TypeStats ts = entry.getValue();
-            double bytesPct = totalBytes == 0 ? 0.0 : 100.0 * ts.getTotalBytes() / totalBytes;
+        for (NetworkTrafficStats.TrafficEntry entry : top) {
+            double bytesPct = totalBytes == 0 ? 0.0 : 100.0 * entry.totalBytes() / totalBytes;
             int currentRank = rank[0]++;
             source.sendSuccess(() -> Component.literal(String.format(
                     "%-2d %-20s count=%,d wire=%s %.1f%%",
                     currentRank,
-                    truncate(entry.getKey(), 20),
-                    ts.getCount(),
-                    NetworkTrafficStats.formatBytes(ts.getTotalBytes()),
+                    truncate(entry.key(), 20),
+                    entry.count(),
+                    NetworkTrafficStats.formatBytes(entry.totalBytes()),
                     bytesPct
             )).withStyle(ChatFormatting.AQUA), false);
         }

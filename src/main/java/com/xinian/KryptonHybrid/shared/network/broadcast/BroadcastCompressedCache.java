@@ -1,11 +1,9 @@
-package com.xinian.KryptonHybrid.shared.network;
+package com.xinian.KryptonHybrid.shared.network.broadcast;
 
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
 import net.minecraft.network.protocol.game.ClientboundLightUpdatePacket;
-
-import java.util.IdentityHashMap;
 
 /**
  * Thread-local cache of <strong>post-Zstd compressed</strong> wire bytes keyed
@@ -37,8 +35,8 @@ public final class BroadcastCompressedCache {
     /** Cap per-thread entries.  64 × ~8 KB ≈ 0.5 MB worst case. */
     private static final int MAX_ENTRIES = 64;
 
-    private static final ThreadLocal<IdentityHashMap<Object, byte[]>> CACHE =
-            ThreadLocal.withInitial(IdentityHashMap::new);
+    private static final ThreadLocalIdentityCache<byte[]> CACHE =
+            new ThreadLocalIdentityCache<>(MAX_ENTRIES, () -> KryptonConfig.broadcastCompressedCacheEnabled);
 
     private BroadcastCompressedCache() {}
 
@@ -49,15 +47,11 @@ public final class BroadcastCompressedCache {
     }
 
     public static byte[] get(Object packet) {
-        if (!KryptonConfig.broadcastCompressedCacheEnabled) return null;
-        return CACHE.get().get(packet);
+        return CACHE.get(packet);
     }
 
     public static void put(Object packet, byte[] bytes) {
-        if (!KryptonConfig.broadcastCompressedCacheEnabled) return;
-        IdentityHashMap<Object, byte[]> map = CACHE.get();
-        if (map.size() >= MAX_ENTRIES) map.clear();
-        map.put(packet, bytes);
+        CACHE.put(packet, bytes);
     }
 }
 

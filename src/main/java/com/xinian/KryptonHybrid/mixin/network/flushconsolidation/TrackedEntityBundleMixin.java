@@ -1,6 +1,6 @@
 package com.xinian.KryptonHybrid.mixin.network.flushconsolidation;
 
-import com.xinian.KryptonHybrid.shared.network.EntityBundleCollector;
+import com.xinian.KryptonHybrid.shared.network.broadcast.EntityBundleCollector;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.server.network.ServerPlayerConnection;
 import org.spongepowered.asm.mixin.Mixin;

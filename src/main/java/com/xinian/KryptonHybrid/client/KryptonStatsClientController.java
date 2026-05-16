@@ -3,7 +3,7 @@ package com.xinian.KryptonHybrid.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.xinian.KryptonHybrid.client.overlay.KryptonHudOverlay;
 import com.xinian.KryptonHybrid.client.screen.KryptonStatsScreen;
-import com.xinian.KryptonHybrid.kryptonhybrid;
+import com.xinian.KryptonHybrid.KryptonHybrid;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -68,7 +68,7 @@ public final class KryptonStatsClientController {
 
     private static void onRegisterGuiLayers(RegisterGuiLayersEvent event) {
         event.registerAboveAll(
-                ResourceLocation.fromNamespaceAndPath(kryptonhybrid.MODID, "stats_hud"),
+                ResourceLocation.fromNamespaceAndPath(KryptonHybrid.MODID, "stats_hud"),
                 new KryptonHudOverlay()
         );
     }

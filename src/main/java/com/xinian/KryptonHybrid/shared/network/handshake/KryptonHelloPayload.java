@@ -1,4 +1,4 @@
-package com.xinian.KryptonHybrid.shared.network;
+package com.xinian.KryptonHybrid.shared.network.handshake;
 
 import io.netty.buffer.ByteBuf;
 import com.xinian.KryptonHybrid.shared.KryptonConfig;

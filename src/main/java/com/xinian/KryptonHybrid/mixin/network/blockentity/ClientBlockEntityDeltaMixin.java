@@ -1,6 +1,6 @@
 package com.xinian.KryptonHybrid.mixin.network.blockentity;
 
-import com.xinian.KryptonHybrid.shared.network.BlockEntityDeltaCache;
+import com.xinian.KryptonHybrid.shared.network.blockentity.BlockEntityDeltaCache;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;

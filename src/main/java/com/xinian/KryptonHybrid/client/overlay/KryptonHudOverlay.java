@@ -2,7 +2,7 @@ package com.xinian.KryptonHybrid.client.overlay;
 
 import com.xinian.KryptonHybrid.client.KryptonStatsClientController;
 import com.xinian.KryptonHybrid.client.ui.UITheme;
-import com.xinian.KryptonHybrid.shared.network.NetworkTrafficStats;
+import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;

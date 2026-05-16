@@ -1,4 +1,4 @@
-package com.xinian.KryptonHybrid.shared.network;
+package com.xinian.KryptonHybrid.shared.network.pipeline;
 
 import javax.crypto.SecretKey;
 import java.security.GeneralSecurityException;

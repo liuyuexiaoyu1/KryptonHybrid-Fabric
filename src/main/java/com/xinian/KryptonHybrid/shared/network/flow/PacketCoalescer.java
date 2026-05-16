@@ -1,8 +1,9 @@
-package com.xinian.KryptonHybrid.shared.network;
+package com.xinian.KryptonHybrid.shared.network.flow;
 
 import com.xinian.KryptonHybrid.mixin.network.microopt.MoveEntityPacketAccessor;
 import com.xinian.KryptonHybrid.mixin.network.microopt.RotateHeadPacketAccessor;
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
+import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import net.minecraft.network.protocol.Packet;

@@ -1,5 +1,8 @@
-package com.xinian.KryptonHybrid.shared.network;
+package com.xinian.KryptonHybrid.shared.network.broadcast;
 
+import com.xinian.KryptonHybrid.shared.network.flow.PacketCoalescer;
+import com.xinian.KryptonHybrid.shared.network.motion.MotionDeltaCache;
+import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBundlePacket;

@@ -1,4 +1,4 @@
-package com.xinian.KryptonHybrid.shared.network;
+package com.xinian.KryptonHybrid.shared.network.broadcast;
 
 /**
  * Thread-local "currently inside a bundle" flag used by

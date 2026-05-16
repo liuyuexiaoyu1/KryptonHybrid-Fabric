@@ -1,8 +1,8 @@
 package com.xinian.KryptonHybrid.mixin.network.blockentity;
 
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
-import com.xinian.KryptonHybrid.shared.network.BlockEntityDeltaCache;
-import com.xinian.KryptonHybrid.shared.network.BlockEntityDeltaHolder;
+import com.xinian.KryptonHybrid.shared.network.blockentity.BlockEntityDeltaCache;
+import com.xinian.KryptonHybrid.shared.network.blockentity.BlockEntityDeltaHolder;
 import com.xinian.KryptonHybrid.shared.network.control.KryptonWireFormat;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;

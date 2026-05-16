@@ -1,4 +1,4 @@
-package com.xinian.KryptonHybrid.shared.network;
+package com.xinian.KryptonHybrid.shared.network.handshake;
 
 import com.xinian.KryptonHybrid.shared.network.control.PacketControlState;
 import net.neoforged.neoforge.network.handling.IPayloadContext;

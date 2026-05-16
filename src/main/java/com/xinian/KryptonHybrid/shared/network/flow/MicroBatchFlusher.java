@@ -1,4 +1,4 @@
-package com.xinian.KryptonHybrid.shared.network;
+package com.xinian.KryptonHybrid.shared.network.flow;
 
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import io.netty.channel.Channel;

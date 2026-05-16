@@ -8,10 +8,10 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
-import com.xinian.KryptonHybrid.shared.network.BroadcastCompressedCache;
-import com.xinian.KryptonHybrid.shared.network.BroadcastSerializationCache;
-import com.xinian.KryptonHybrid.shared.network.BundleEncodeContext;
-import com.xinian.KryptonHybrid.shared.network.NetworkTrafficStats;
+import com.xinian.KryptonHybrid.shared.network.broadcast.BroadcastCompressedCache;
+import com.xinian.KryptonHybrid.shared.network.broadcast.BroadcastSerializationCache;
+import com.xinian.KryptonHybrid.shared.network.broadcast.BundleEncodeContext;
+import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.resources.ResourceLocation;
 

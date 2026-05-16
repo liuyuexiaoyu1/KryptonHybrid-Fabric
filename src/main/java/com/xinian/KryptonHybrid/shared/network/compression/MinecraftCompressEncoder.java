@@ -10,8 +10,8 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.resources.ResourceLocation;
-import com.xinian.KryptonHybrid.shared.network.BroadcastSerializationCache;
-import com.xinian.KryptonHybrid.shared.network.NetworkTrafficStats;
+import com.xinian.KryptonHybrid.shared.network.broadcast.BroadcastSerializationCache;
+import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 
 public class MinecraftCompressEncoder extends MessageToByteEncoder<ByteBuf> {
 

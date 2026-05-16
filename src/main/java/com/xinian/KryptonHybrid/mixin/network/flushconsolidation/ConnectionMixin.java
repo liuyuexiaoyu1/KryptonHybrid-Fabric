@@ -2,7 +2,7 @@ package com.xinian.KryptonHybrid.mixin.network.flushconsolidation;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
-import com.xinian.KryptonHybrid.shared.network.ConfigurableAutoFlush;
+import com.xinian.KryptonHybrid.shared.network.flow.ConfigurableAutoFlush;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.PacketFlow;
 import org.spongepowered.asm.mixin.Mixin;

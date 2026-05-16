@@ -1,4 +1,4 @@
-package com.xinian.KryptonHybrid.shared.network;
+package com.xinian.KryptonHybrid.shared.network.stats;
 
 import java.util.List;
 import java.util.Map;
@@ -10,7 +10,7 @@ public final class NetworkTrafficStats {
 
     public static final NetworkTrafficStats INSTANCE = new NetworkTrafficStats();
 
-    public static final class TypeStats {
+    private static final class TypeStats {
         private final AtomicLong count = new AtomicLong();
         private final AtomicLong totalBytes = new AtomicLong();
 
@@ -28,12 +28,18 @@ public final class NetworkTrafficStats {
         }
     }
 
+    public record TrafficEntry(String key, long count, long totalBytes) {
+        public double avgBytes() {
+            return count == 0 ? 0.0 : (double) totalBytes / count;
+        }
+    }
+
     private final AtomicLong packetsSent = new AtomicLong();
     private final AtomicLong packetsReceived = new AtomicLong();
     private final AtomicLong bytesSentOriginal = new AtomicLong();
     private final AtomicLong bytesSentWire = new AtomicLong();
     private final AtomicLong bytesReceived = new AtomicLong();
-    // P1-⑤ Bundle/coalesce hit-rate counters
+    // Bundle/coalesce hit-rate counters.
     private final AtomicLong bundlesEmitted = new AtomicLong();
     private final AtomicLong bundlePacketsTotal = new AtomicLong();
     private final AtomicLong bundleBatchesObserved = new AtomicLong();
@@ -70,30 +76,34 @@ public final class NetworkTrafficStats {
         perModWireStats.computeIfAbsent(modId, k -> new TypeStats()).record(wireBytes);
     }
 
-    public List<Map.Entry<String, TypeStats>> getTopModsByCount(int limit) {
+    public List<TrafficEntry> getTopModsByCount(int limit) {
         return perModStats.entrySet().stream()
             .sorted((a, b) -> Long.compare(b.getValue().getCount(), a.getValue().getCount()))
             .limit(limit)
+            .map(NetworkTrafficStats::toTrafficEntry)
             .collect(Collectors.toList());
     }
 
-    public List<Map.Entry<String, TypeStats>> getTopModsByBytes(int limit) {
+    public List<TrafficEntry> getTopModsByBytes(int limit) {
         return perModStats.entrySet().stream()
             .sorted((a, b) -> Long.compare(b.getValue().getTotalBytes(), a.getValue().getTotalBytes()))
             .limit(limit)
+            .map(NetworkTrafficStats::toTrafficEntry)
             .collect(Collectors.toList());
     }
 
-    public List<Map.Entry<String, TypeStats>> getTopModsByWireBytes(int limit) {
+    public List<TrafficEntry> getTopModsByWireBytes(int limit) {
         return perModWireStats.entrySet().stream()
             .sorted((a, b) -> Long.compare(b.getValue().getTotalBytes(), a.getValue().getTotalBytes()))
             .limit(limit)
+            .map(NetworkTrafficStats::toTrafficEntry)
             .collect(Collectors.toList());
     }
 
-    public Map.Entry<String, TypeStats> getTopModByBytes() {
+    public TrafficEntry getTopModByBytes() {
         return perModStats.entrySet().stream()
                 .max((a, b) -> Long.compare(a.getValue().getTotalBytes(), b.getValue().getTotalBytes()))
+                .map(NetworkTrafficStats::toTrafficEntry)
                 .orElse(null);
     }
 
@@ -101,31 +111,40 @@ public final class NetworkTrafficStats {
         return perModStats.size();
     }
 
-    public List<Map.Entry<String, TypeStats>> getTopByCount(int limit) {
+    public List<TrafficEntry> getTopByCount(int limit) {
         return perTypeStats.entrySet().stream()
             .sorted((a, b) -> Long.compare(b.getValue().getCount(), a.getValue().getCount()))
             .limit(limit)
+            .map(NetworkTrafficStats::toTrafficEntry)
             .collect(Collectors.toList());
     }
 
-    public List<Map.Entry<String, TypeStats>> getTopByBytes(int limit) {
+    public List<TrafficEntry> getTopByBytes(int limit) {
         return perTypeStats.entrySet().stream()
             .sorted((a, b) -> Long.compare(b.getValue().getTotalBytes(), a.getValue().getTotalBytes()))
             .limit(limit)
+            .map(NetworkTrafficStats::toTrafficEntry)
             .collect(Collectors.toList());
     }
 
-    public List<Map.Entry<String, TypeStats>> getTopByWireBytes(int limit) {
+    public List<TrafficEntry> getTopByWireBytes(int limit) {
         return perTypeWireStats.entrySet().stream()
             .sorted((a, b) -> Long.compare(b.getValue().getTotalBytes(), a.getValue().getTotalBytes()))
             .limit(limit)
+            .map(NetworkTrafficStats::toTrafficEntry)
             .collect(Collectors.toList());
     }
 
-    public Map.Entry<String, TypeStats> getTopTypeByBytes() {
+    public TrafficEntry getTopTypeByBytes() {
         return perTypeStats.entrySet().stream()
                 .max((a, b) -> Long.compare(a.getValue().getTotalBytes(), b.getValue().getTotalBytes()))
+                .map(NetworkTrafficStats::toTrafficEntry)
                 .orElse(null);
+    }
+
+    private static TrafficEntry toTrafficEntry(Map.Entry<String, TypeStats> entry) {
+        TypeStats stats = entry.getValue();
+        return new TrafficEntry(entry.getKey(), stats.getCount(), stats.getTotalBytes());
     }
 
     public int getTrackedTypeCount() {

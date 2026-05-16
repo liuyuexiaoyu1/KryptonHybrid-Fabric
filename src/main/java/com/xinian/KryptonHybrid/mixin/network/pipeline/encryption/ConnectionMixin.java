@@ -4,7 +4,7 @@ import com.velocitypowered.natives.encryption.VelocityCipher;
 import com.velocitypowered.natives.util.Natives;
 import io.netty.channel.Channel;
 import com.xinian.KryptonHybrid.shared.misc.KryptonPipelineEvent;
-import com.xinian.KryptonHybrid.shared.network.ClientConnectionEncryptionExtension;
+import com.xinian.KryptonHybrid.shared.network.pipeline.ClientConnectionEncryptionExtension;
 import com.xinian.KryptonHybrid.shared.network.pipeline.MinecraftCipherDecoder;
 import com.xinian.KryptonHybrid.shared.network.pipeline.MinecraftCipherEncoder;
 import net.minecraft.network.Connection;

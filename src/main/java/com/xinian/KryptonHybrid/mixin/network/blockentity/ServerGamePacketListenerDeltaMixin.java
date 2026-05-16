@@ -1,7 +1,7 @@
 package com.xinian.KryptonHybrid.mixin.network.blockentity;
 
-import com.xinian.KryptonHybrid.shared.network.BlockEntityDeltaCache;
-import com.xinian.KryptonHybrid.shared.network.BlockEntityDeltaHolder;
+import com.xinian.KryptonHybrid.shared.network.blockentity.BlockEntityDeltaCache;
+import com.xinian.KryptonHybrid.shared.network.blockentity.BlockEntityDeltaHolder;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;

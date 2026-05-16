@@ -1,6 +1,6 @@
 package com.xinian.KryptonHybrid.mixin.network.pipeline.encryption;
 
-import com.xinian.KryptonHybrid.shared.network.ClientConnectionEncryptionExtension;
+import com.xinian.KryptonHybrid.shared.network.pipeline.ClientConnectionEncryptionExtension;
 import net.minecraft.network.Connection;
 import net.minecraft.server.network.ServerLoginPacketListenerImpl;
 import org.spongepowered.asm.mixin.Final;

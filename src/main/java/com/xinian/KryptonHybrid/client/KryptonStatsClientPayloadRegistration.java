@@ -10,7 +10,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
  * <p>Kept in a separate class so that the dedicated server JVM never references
  * client-only classes.  This
  * class is only loaded behind a {@code FMLEnvironment.dist.isClient()} guard
- * inside {@code kryptonhybrid.onRegisterPayloads}.</p>
+ * inside {@code KryptonHybrid.onRegisterPayloads}.</p>
  */
 public final class KryptonStatsClientPayloadRegistration {
 

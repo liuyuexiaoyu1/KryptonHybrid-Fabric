@@ -1,4 +1,4 @@
-package com.xinian.KryptonHybrid.shared.network;
+package com.xinian.KryptonHybrid.shared.network.blockentity;
 
 /**
  * Duck interface implemented on {@link net.minecraft.server.network.ServerGamePacketListenerImpl}

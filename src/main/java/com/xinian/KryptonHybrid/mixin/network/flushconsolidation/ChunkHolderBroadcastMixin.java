@@ -1,6 +1,6 @@
 package com.xinian.KryptonHybrid.mixin.network.flushconsolidation;
 
-import com.xinian.KryptonHybrid.shared.network.BroadcastBundleCollector;
+import com.xinian.KryptonHybrid.shared.network.broadcast.BroadcastBundleCollector;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ServerPlayer;
