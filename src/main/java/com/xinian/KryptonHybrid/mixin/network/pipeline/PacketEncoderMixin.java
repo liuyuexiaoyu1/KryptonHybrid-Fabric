@@ -47,10 +47,7 @@ public class PacketEncoderMixin {
     private void kryptonfnp$cacheHitEncode(ChannelHandlerContext ctx, Packet<?> packet, ByteBuf out, CallbackInfo ci) {
         PacketControlContext.setCurrentChannel(ctx.channel());
 
-        // Track bundle-delimiter scope for downstream forced-compression decisions.
-        if (packet instanceof net.minecraft.network.protocol.BundleDelimiterPacket<?>) {
-            BundleEncodeContext.onDelimiter();
-        }
+        // 1.19.2 has no vanilla bundle delimiter packet.
         // Hand the Packet reference to ZstdCompressEncoder via thread-local.
         BroadcastSerializationCache.setCurrentPacket(packet);
 

@@ -8,7 +8,7 @@ import com.xinian.KryptonHybrid.shared.network.compression.CompressionAlgorithm;
 import org.apache.commons.lang3.tuple.Pair;
 
 /**
- * Forge-specific configuration definition for Krypton Hybrid (1.20.1).
+ * Forge-specific configuration definition for Krypton Hybrid (1.19.2).
  *
  * <p>The config file is registered as type {@link net.minecraftforge.fml.config.ModConfig.Type#COMMON COMMON},
  * which means Forge generates it immediately at mod load time under

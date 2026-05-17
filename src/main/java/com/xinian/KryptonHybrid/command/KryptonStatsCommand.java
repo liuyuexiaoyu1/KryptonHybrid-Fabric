@@ -95,29 +95,29 @@ public final class KryptonStatsCommand {
         long sendRateWire = bytesSentWire / elapsed;
         long recvRate = bytesReceived / elapsed;
 
-        source.sendSuccess(() -> t("command.krypton_hybrid.stats.header")
+        source.sendSuccess(t("command.krypton_hybrid.stats.header")
                 .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
-        source.sendSuccess(() -> t("command.krypton_hybrid.stats.uptime_algo",
+        source.sendSuccess(t("command.krypton_hybrid.stats.uptime_algo",
                 String.valueOf(elapsed),
                 KryptonConfig.compressionAlgorithm.name()), false);
-        source.sendSuccess(() -> t("command.krypton_hybrid.stats.packets",
+        source.sendSuccess(t("command.krypton_hybrid.stats.packets",
                 String.format("%,d", packetsSent),
                 String.format("%.1f", (double) packetsSent / elapsed),
                 String.format("%,d", packetsReceived),
                 String.format("%.1f", (double) packetsReceived / elapsed)), false);
-        source.sendSuccess(() -> t("command.krypton_hybrid.stats.sent_original",
+        source.sendSuccess(t("command.krypton_hybrid.stats.sent_original",
                 NetworkTrafficStats.formatBytes(bytesSentOrig),
                 NetworkTrafficStats.formatBytes(sendRateOrig)), false);
-        source.sendSuccess(() -> t("command.krypton_hybrid.stats.sent_wire",
+        source.sendSuccess(t("command.krypton_hybrid.stats.sent_wire",
                 NetworkTrafficStats.formatBytes(bytesSentWire),
                 NetworkTrafficStats.formatBytes(sendRateWire)), false);
-        source.sendSuccess(() -> t("command.krypton_hybrid.stats.received",
+        source.sendSuccess(t("command.krypton_hybrid.stats.received",
                 NetworkTrafficStats.formatBytes(bytesReceived),
                 NetworkTrafficStats.formatBytes(recvRate)), false);
-        source.sendSuccess(() -> t("command.krypton_hybrid.stats.compression",
+        source.sendSuccess(t("command.krypton_hybrid.stats.compression",
                 String.format("%.4f", ratio),
                 String.format("%.2f", savingPct)), false);
-        source.sendSuccess(() -> t("command.krypton_hybrid.stats.bundles",
+        source.sendSuccess(t("command.krypton_hybrid.stats.bundles",
                 String.format("%,d", stats.getBundlesEmitted()),
                 String.format("%.2f", stats.getAvgBundleSize()),
                 String.format("%.1f", stats.getBundleHitRate() * 100.0),
@@ -228,18 +228,18 @@ public final class KryptonStatsCommand {
                                      Component header,
                                      String totalKey,
                                      RowRenderer rowRenderer) {
-        source.sendSuccess(() -> header.copy().withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
+        source.sendSuccess(header.copy().withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
 
         int rank = 1;
         for (NetworkTrafficStats.TrafficEntry entry : top) {
             double cntPct   = totalPackets == 0 ? 0.0 : 100.0 * entry.count()      / totalPackets;
             double bytesPct = totalBytes   == 0 ? 0.0 : 100.0 * entry.totalBytes() / totalBytes;
             Component row = rowRenderer.render(rank, entry, cntPct, bytesPct);
-            source.sendSuccess(() -> row, false);
+            source.sendSuccess(row, false);
             rank++;
         }
 
-        source.sendSuccess(() -> t(totalKey,
+        source.sendSuccess(t(totalKey,
                 String.format("%,d", totalPackets),
                 NetworkTrafficStats.formatBytes(totalBytes)), false);
 
@@ -259,45 +259,43 @@ public final class KryptonStatsCommand {
         CommandSourceStack source = ctx.getSource();
         SecurityMetrics m = SecurityMetrics.INSTANCE;
 
-        source.sendSuccess(() -> t("command.krypton_hybrid.security.header")
+        source.sendSuccess(t("command.krypton_hybrid.security.header")
                 .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
 
-        source.sendSuccess(() -> {
-            MutableComponent state = Component.translatable(KryptonConfig.securityEnabled
-                    ? "command.krypton_hybrid.security.state.on"
-                    : "command.krypton_hybrid.security.state.off")
-                    .withStyle(KryptonConfig.securityEnabled
-                            ? ChatFormatting.GREEN : ChatFormatting.RED);
-            return t("command.krypton_hybrid.security.enabled", state);
-        }, false);
+        MutableComponent state = Component.translatable(KryptonConfig.securityEnabled
+                ? "command.krypton_hybrid.security.state.on"
+                : "command.krypton_hybrid.security.state.off")
+                .withStyle(KryptonConfig.securityEnabled
+                        ? ChatFormatting.GREEN : ChatFormatting.RED);
+        source.sendSuccess(t("command.krypton_hybrid.security.enabled", state), false);
 
-        source.sendSuccess(() -> t("command.krypton_hybrid.security.conn_rate_limited",
+        source.sendSuccess(t("command.krypton_hybrid.security.conn_rate_limited",
                 String.valueOf(m.getConnectionsRateLimited())), false);
-        source.sendSuccess(() -> t("command.krypton_hybrid.security.pkts_size_rejected",
+        source.sendSuccess(t("command.krypton_hybrid.security.pkts_size_rejected",
                 String.valueOf(m.getPacketsSizeRejected())), false);
-        source.sendSuccess(() -> t("command.krypton_hybrid.security.read_limit_rejected",
+        source.sendSuccess(t("command.krypton_hybrid.security.read_limit_rejected",
                 String.valueOf(m.getReadLimitRejected())), false);
-        source.sendSuccess(() -> t("command.krypton_hybrid.security.null_frames_dropped",
+        source.sendSuccess(t("command.krypton_hybrid.security.null_frames_dropped",
                 String.valueOf(m.getNullFramesDropped())), false);
-        source.sendSuccess(() -> t("command.krypton_hybrid.security.decomp_bombs",
+        source.sendSuccess(t("command.krypton_hybrid.security.decomp_bombs",
                 String.valueOf(m.getDecompressionBombs())), false);
-        source.sendSuccess(() -> t("command.krypton_hybrid.security.handshakes_rejected",
+        source.sendSuccess(t("command.krypton_hybrid.security.handshakes_rejected",
                 String.valueOf(m.getHandshakesRejected())), false);
-        source.sendSuccess(() -> t("command.krypton_hybrid.security.status_requests_dropped",
+        source.sendSuccess(t("command.krypton_hybrid.security.status_requests_dropped",
                 String.valueOf(m.getStatusRequestsDropped())), false);
-        source.sendSuccess(() -> t("command.krypton_hybrid.security.legacy_queries_dropped",
+        source.sendSuccess(t("command.krypton_hybrid.security.legacy_queries_dropped",
                 String.valueOf(m.getLegacyQueriesDropped())), false);
-        source.sendSuccess(() -> t("command.krypton_hybrid.security.motd_cache",
+        source.sendSuccess(t("command.krypton_hybrid.security.motd_cache",
                 MotdCache.statusDescription()), false);
-        source.sendSuccess(() -> t("command.krypton_hybrid.security.timeouts",
+        source.sendSuccess(t("command.krypton_hybrid.security.timeouts",
                 String.valueOf(m.getTimeouts())), false);
-        source.sendSuccess(() -> t("command.krypton_hybrid.security.anomaly_disconnects",
+        source.sendSuccess(t("command.krypton_hybrid.security.anomaly_disconnects",
                 String.valueOf(m.getAnomalyDisconnects())), false);
-        source.sendSuccess(() -> t("command.krypton_hybrid.security.anomaly_events",
+        source.sendSuccess(t("command.krypton_hybrid.security.anomaly_events",
                 String.valueOf(m.getAnomalyEvents())), false);
-        source.sendSuccess(() -> t("command.krypton_hybrid.security.writes_dropped",
+        source.sendSuccess(t("command.krypton_hybrid.security.writes_dropped",
                 String.valueOf(m.getWritesDropped())), false);
-        source.sendSuccess(() -> t("command.krypton_hybrid.security.watermark_breaches",
+        source.sendSuccess(t("command.krypton_hybrid.security.watermark_breaches",
                 String.valueOf(m.getWatermarkBreaches())), false);
 
         return 1;
@@ -305,31 +303,31 @@ public final class KryptonStatsCommand {
 
     private static int executeReset(CommandContext<CommandSourceStack> ctx) {
         NetworkTrafficStats.INSTANCE.reset();
-        ctx.getSource().sendSuccess(() ->
-                t("command.krypton_hybrid.stats.reset")
-                        .withStyle(ChatFormatting.GREEN), true);
+        ctx.getSource().sendSuccess(t("command.krypton_hybrid.stats.reset")
+                .withStyle(ChatFormatting.GREEN), true);
         return 1;
     }
 
     private static int executeZstdStatus(CommandContext<CommandSourceStack> ctx) {
         CommandSourceStack source = ctx.getSource();
-        source.sendSuccess(() -> Component.literal("Krypton Zstd status")
+        source.sendSuccess(Component.literal("Krypton Zstd status")
                 .withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), false);
-        source.sendSuccess(() -> Component.literal("  Compression: " + ZstdUtil.statusDescription())
+        source.sendSuccess(Component.literal("  Compression: " + ZstdUtil.statusDescription())
                 .withStyle(ChatFormatting.AQUA), false);
-        source.sendSuccess(() -> Component.literal("  Dictionary:  " + ZstdUtil.dictionaryStatusDescription())
+        source.sendSuccess(Component.literal("  Dictionary:  " + ZstdUtil.dictionaryStatusDescription())
                 .withStyle(ChatFormatting.AQUA), false);
-        source.sendSuccess(() -> Component.literal("  Capture:     " + ZstdSampleRecorder.statusDescription())
+        source.sendSuccess(Component.literal("  Capture:     " + ZstdSampleRecorder.statusDescription())
                 .withStyle(ChatFormatting.AQUA), false);
         return 1;
     }
 
     private static int executeZstdDictReload(CommandContext<CommandSourceStack> ctx) {
         ZstdUtil.reloadDictionary();
-        ctx.getSource().sendSuccess(() -> Component.literal(
+        ctx.getSource().sendSuccess(Component.literal(
                         "Reloaded Zstd dictionary: " + ZstdUtil.dictionaryStatusDescription())
                 .withStyle(ChatFormatting.GREEN), true);
         return 1;
     }
 }
+
 

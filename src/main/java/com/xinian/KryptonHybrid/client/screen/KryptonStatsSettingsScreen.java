@@ -1,10 +1,11 @@
 package com.xinian.KryptonHybrid.client.screen;
 
 import com.xinian.KryptonHybrid.client.overlay.KryptonHudOverlay;
+import com.xinian.KryptonHybrid.client.compat.KryptonGuiGraphics;
 import com.xinian.KryptonHybrid.client.ui.MCButton;
 import com.xinian.KryptonHybrid.client.ui.MCPanel;
 import com.xinian.KryptonHybrid.client.ui.UITheme;
-import net.minecraft.client.gui.GuiGraphics;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -93,9 +94,10 @@ public final class KryptonStatsSettingsScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+        KryptonGuiGraphics g = new KryptonGuiGraphics(poseStack);
         var c = UITheme.colors();
-        renderBackground(g);
+        renderBackground(poseStack);
         g.fill(0, 0, this.width, this.height, c.panelBg());
 
         int panelW = Math.min(420, this.width - 24);
@@ -112,7 +114,7 @@ public final class KryptonStatsSettingsScreen extends Screen {
                 px + 18, py + 26, c.textSecondary(), false);
 
         for (var renderable : this.renderables) {
-            renderable.render(g, mouseX, mouseY, partialTick);
+            renderable.render(poseStack, mouseX, mouseY, partialTick);
         }
     }
 

@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /**
  * Implements the Delayed Chunk Cache (DCC) optimization for Krypton Hybrid.
  *
- * <p>Forge 1.20.1 still exposes the multi-argument
+ * <p>Forge 1.19.2 still exposes the multi-argument
  * {@code ChunkMap.updateChunkTracking} path. DCC intercepts that transition point
  * directly: leave transitions can delay {@code untrackChunk}, and matching enter
  * transitions can skip a resend while the client still has the chunk.</p>
@@ -42,7 +42,7 @@ public abstract class ChunkMapDccMixin {
             CallbackInfo ci
     ) {
         ServerLevel level = this.krypton$level();
-        if (player.level() != level) {
+        if (player.getLevel() != level) {
             return;
         }
 
@@ -68,6 +68,6 @@ public abstract class ChunkMapDccMixin {
 
     private static void dropChunkDeferred(ServerPlayer player, ChunkPos chunkPos) {
         player.untrackChunk(chunkPos);
-        net.minecraftforge.event.ForgeEventFactory.fireChunkUnWatch(player, chunkPos, player.serverLevel());
+        net.minecraftforge.event.ForgeEventFactory.fireChunkUnWatch(player, chunkPos, player.getLevel());
     }
 }

@@ -4,8 +4,6 @@ import com.xinian.KryptonHybrid.shared.network.flow.PacketCoalescer;
 import com.xinian.KryptonHybrid.shared.network.motion.MotionDeltaCache;
 import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientGamePacketListener;
-import net.minecraft.network.protocol.game.ClientboundBundlePacket;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.util.ArrayList;
@@ -80,14 +78,7 @@ public final class BroadcastBundleCollector {
 
         List<Packet<?>> list = batch.computeIfAbsent(player, k -> new ArrayList<>());
 
-        // Unwrap existing bundles to prevent nesting
-        if (packet instanceof ClientboundBundlePacket bundle) {
-            for (Packet<?> sub : bundle.subPackets()) {
-                list.add(sub);
-            }
-        } else {
-            list.add(packet);
-        }
+        list.add(packet);
 
         return true;
     }
@@ -132,15 +123,10 @@ public final class BroadcastBundleCollector {
             }
             batchPlayers++;
 
-            if (packets.size() == 1) {
-                player.connection.send(packets.get(0));
-            } else {
-                emittedBundles++;
-                packetsInBundles += packets.size();
-                player.connection.send(new ClientboundBundlePacket(
-                        (Iterable<Packet<ClientGamePacketListener>>) (Iterable<?>) packets
-                ));
+            for (Packet<?> packet : packets) {
+                player.connection.send(packet);
             }
+            packetsInBundles += packets.size();
         }
 
         NetworkTrafficStats.INSTANCE.recordBundleBatch(batchPlayers, emittedBundles, packetsInBundles);

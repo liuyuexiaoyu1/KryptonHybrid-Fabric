@@ -60,7 +60,7 @@ import java.util.List;
  *     0x00 + VarInt(len) + raw bytes   ??multi-value section
  *
  *   --- Block entities (unchanged) ---
- *   1.20.1 FriendlyByteBuf collection encoding
+ *   1.19.2 FriendlyByteBuf collection encoding
  * </pre>
  *
  * <h3>Read-side compatibility</h3>

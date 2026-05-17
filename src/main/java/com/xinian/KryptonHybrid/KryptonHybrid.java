@@ -19,6 +19,7 @@ import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLEnvironment;
+import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.network.NetworkRegistry;
@@ -33,15 +34,15 @@ public final class KryptonHybrid {
     private static final String NETWORK_VERSION = "1";
 
     public static final SimpleChannel NETWORK = NetworkRegistry.newSimpleChannel(
-            ResourceLocation.fromNamespaceAndPath(MODID, "main"),
+            new ResourceLocation(MODID, "main"),
             () -> NETWORK_VERSION,
             NETWORK_VERSION::equals,
             NETWORK_VERSION::equals
     );
 
-    public KryptonHybrid(FMLJavaModLoadingContext context) {
-        IEventBus modEventBus = context.getModEventBus();
-        context.registerConfig(ModConfig.Type.COMMON, KryptonForgeConfig.SPEC);
+    public KryptonHybrid() {
+        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, KryptonForgeConfig.SPEC);
 
         modEventBus.addListener(this::onConfigLoad);
         modEventBus.addListener(this::onConfigReload);

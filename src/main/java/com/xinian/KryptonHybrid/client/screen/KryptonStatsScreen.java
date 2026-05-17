@@ -1,12 +1,13 @@
 package com.xinian.KryptonHybrid.client.screen;
 
 import com.xinian.KryptonHybrid.client.KryptonStatsClientController;
+import com.xinian.KryptonHybrid.client.compat.KryptonGuiGraphics;
 import com.xinian.KryptonHybrid.client.ui.MCButton;
 import com.xinian.KryptonHybrid.client.ui.MCPanel;
 import com.xinian.KryptonHybrid.client.ui.UITheme;
 import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
-import net.minecraft.client.gui.GuiGraphics;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -369,7 +370,7 @@ public final class KryptonStatsScreen extends Screen {
         activePanels.add(client);
     }
 
-    private void drawHotspotEntries(GuiGraphics g, int x, int y, int w, int h) {
+    private void drawHotspotEntries(KryptonGuiGraphics g, int x, int y, int w, int h) {
         int ly = drawMetric(g, x, y, w, "gui.krypton_hybrid.label.tracked_types",
                 String.format("%,d", snap.trackedTypeCount()));
         ly = drawMetric(g, x, ly, w, "gui.krypton_hybrid.label.tracked_mods",
@@ -397,7 +398,7 @@ public final class KryptonStatsScreen extends Screen {
                         String.format("%,d pkt", snap.hottestModPackets()));
     }
 
-    private void drawSecurityEntries(GuiGraphics g, int x, int y, int w, int h) {
+    private void drawSecurityEntries(KryptonGuiGraphics g, int x, int y, int w, int h) {
         var c = UITheme.colors();
         int statusColor = snap.securityEnabled() ? c.successColor() : c.dangerColor();
         int ly = drawMetricWithTooltip(g, x, y, w,
@@ -451,7 +452,7 @@ public final class KryptonStatsScreen extends Screen {
                 ));
     }
 
-    private void drawClientEntries(GuiGraphics g, int x, int y, int w, int h) {
+    private void drawClientEntries(KryptonGuiGraphics g, int x, int y, int w, int h) {
         long age = KryptonStatsClientController.latestSnapshotAgeMs();
         long req = KryptonStatsClientController.snapshotRequestCount();
         long recv = KryptonStatsClientController.snapshotReceiveCount();
@@ -508,7 +509,7 @@ public final class KryptonStatsScreen extends Screen {
                 ));
     }
 
-    private int drawMetricWithTooltip(GuiGraphics g,
+    private int drawMetricWithTooltip(KryptonGuiGraphics g,
                                       int x,
                                       int y,
                                       int width,
@@ -537,7 +538,7 @@ public final class KryptonStatsScreen extends Screen {
         return new int[]{x0, x1, x2, x3, y, h};
     }
 
-    private void drawModsContent(GuiGraphics g, int x, int y, int w, int h) {
+    private void drawModsContent(KryptonGuiGraphics g, int x, int y, int w, int h) {
         var c = UITheme.colors();
         long totalPacketsAll = Math.max(1L, snap.totalTrackedModPackets());
 
@@ -636,7 +637,7 @@ public final class KryptonStatsScreen extends Screen {
         }
     }
 
-    private void drawSortChip(GuiGraphics g, int x, int y, int w, int h, boolean active, String key) {
+    private void drawSortChip(KryptonGuiGraphics g, int x, int y, int w, int h, boolean active, String key) {
         var c = UITheme.colors();
         int bg = active ? UITheme.withAlpha(c.accent(), 0x40) : UITheme.withAlpha(c.widgetBg(), 0xA0);
         int border = active ? c.accent() : UITheme.withAlpha(c.widgetBorder(), 0xA0);
@@ -702,13 +703,14 @@ public final class KryptonStatsScreen extends Screen {
     // ??? Render ???
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+        KryptonGuiGraphics g = new KryptonGuiGraphics(poseStack);
         this.lastMouseX = mouseX;
         this.lastMouseY = mouseY;
         this.summaryTooltip = null;
 
         var c = UITheme.colors();
-        renderBackground(g);
+        renderBackground(poseStack);
         g.fill(0, 0, this.width, this.height, c.panelBg());
 
         // Header: title + subtitle stacked, aligned to font line height
@@ -742,7 +744,7 @@ public final class KryptonStatsScreen extends Screen {
         String hintText = truncate(hint.getString(), this.width - 24);
         g.drawCenteredString(this.font, hintText, this.width / 2, hintY, c.textMuted());
 
-        for (var renderable : this.renderables) renderable.render(g, mouseX, mouseY, partialTick);
+        for (var renderable : this.renderables) renderable.render(poseStack, mouseX, mouseY, partialTick);
     }
 
     @Override
@@ -780,7 +782,7 @@ public final class KryptonStatsScreen extends Screen {
 
     // ??? Drawing helpers ???
 
-    private void drawChipStrip(GuiGraphics g, int x, int y, int w, long ageMs, double bundleHit) {
+    private void drawChipStrip(KryptonGuiGraphics g, int x, int y, int w, long ageMs, double bundleHit) {
         var c = UITheme.colors();
         String[][] chips = {
                 {translate("gui.krypton_hybrid.label.algorithm"), snap.compressionAlgorithm()},
@@ -864,7 +866,7 @@ public final class KryptonStatsScreen extends Screen {
         return lines;
     }
 
-    private void renderModernTooltip(GuiGraphics g, List<Component> lines, int x, int y) {
+    private void renderModernTooltip(KryptonGuiGraphics g, List<Component> lines, int x, int y) {
         int maxW = 0;
         for (Component line : lines) maxW = Math.max(maxW, this.font.width(line));
         int pad = 6;
@@ -884,7 +886,7 @@ public final class KryptonStatsScreen extends Screen {
         }
     }
 
-    private int drawSavingBar(GuiGraphics g, int x, int y, int w, double percent) {
+    private int drawSavingBar(KryptonGuiGraphics g, int x, int y, int w, double percent) {
         var c = UITheme.colors();
         int barH = 10;
         UITheme.fillRoundedRect(g, x, y, w, barH, 3, c.widgetBg());
@@ -903,11 +905,11 @@ public final class KryptonStatsScreen extends Screen {
         return y + barH + lineH() + 2;
     }
 
-    private int drawMetric(GuiGraphics g, int x, int y, int width, String labelKey, String value) {
+    private int drawMetric(KryptonGuiGraphics g, int x, int y, int width, String labelKey, String value) {
         return drawMetric(g, x, y, width, labelKey, value, UITheme.colors().textPrimary());
     }
 
-    private int drawMetric(GuiGraphics g, int x, int y, int width, String labelKey, String value, int valueColor) {
+    private int drawMetric(KryptonGuiGraphics g, int x, int y, int width, String labelKey, String value, int valueColor) {
         var c = UITheme.colors();
         String label = Component.translatable(labelKey).getString();
         int labelW = this.font.width(label);

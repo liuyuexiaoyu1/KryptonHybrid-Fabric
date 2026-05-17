@@ -16,7 +16,7 @@ import java.util.Collection;
  * Makes {@link ServerLevel} implement {@link WorldEntityByChunkAccess} using the entity section storage
  * for fast per-chunk entity lookup.
  * 
- * <p>This mixin is Forge-specific (1.20.1) and must be in the forge module to generate
+ * <p>This mixin is Forge-specific (1.19.2) and must be in the forge module to generate
  * correct refmap entries with SRG names.</p>
  */
 @SuppressWarnings("unchecked")
@@ -33,4 +33,3 @@ public abstract class ServerLevelMixin {
         return ((WorldEntityByChunkAccess) storage).getEntitiesInChunk(chunkX, chunkZ);
     }
 }
-

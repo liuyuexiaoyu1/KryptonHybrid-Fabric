@@ -1,11 +1,12 @@
 package com.xinian.KryptonHybrid.client.overlay;
 
 import com.xinian.KryptonHybrid.client.KryptonStatsClientController;
+import com.xinian.KryptonHybrid.client.compat.KryptonGuiGraphics;
 import com.xinian.KryptonHybrid.client.ui.UITheme;
 import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.client.gui.overlay.ForgeGui;
 import net.minecraftforge.client.gui.overlay.IGuiOverlay;
@@ -56,7 +57,8 @@ public final class KryptonHudOverlay implements IGuiOverlay {
     public static void toggleShowTopMod() { showTopMod = !showTopMod; }
 
     @Override
-    public void render(ForgeGui gui, GuiGraphics graphics, float partialTick, int screenWidth, int screenHeight) {
+    public void render(ForgeGui gui, PoseStack poseStack, float partialTick, int screenWidth, int screenHeight) {
+        KryptonGuiGraphics graphics = new KryptonGuiGraphics(poseStack);
         if (!visible) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.screen != null || mc.player == null) return;

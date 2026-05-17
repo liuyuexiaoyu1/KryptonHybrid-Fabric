@@ -1,11 +1,7 @@
 package com.xinian.KryptonHybrid.shared.network.security;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.mojang.serialization.DataResult;
-import com.mojang.serialization.JsonOps;
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
-import io.netty.handler.codec.EncoderException;
+import net.minecraft.network.protocol.status.ClientboundStatusResponsePacket;
 import net.minecraft.network.protocol.status.ServerStatus;
 
 import java.util.Locale;
@@ -14,14 +10,12 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Short-lived cache for MOTD / Server List Ping responses.
  *
- * <p>Modern status responses spend time encoding {@link ServerStatus#CODEC} into
+ * <p>Modern status responses spend time encoding {@link ServerStatus} into
  * JSON. During server-list scans this can happen many times per second. A small
  * TTL keeps the response fresh enough for the server list while avoiding repeated
  * JSON serialization and legacy MOTD string formatting.</p>
  */
 public final class MotdCache {
-    private static final Gson GSON = new Gson();
-
     private static volatile JsonEntry modernJson;
     private static volatile LegacyEntry legacyV0;
     private static volatile LegacyEntry legacyV1;
@@ -98,10 +92,7 @@ public final class MotdCache {
     }
 
     private static String encodeStatusJson(ServerStatus status) {
-        DataResult<JsonElement> result = ServerStatus.CODEC.encodeStart(JsonOps.INSTANCE, status);
-        return GSON.toJson(result.getOrThrow(false, error -> {
-            throw new EncoderException("Failed to encode server status: " + error);
-        }));
+        return ClientboundStatusResponsePacket.GSON.toJson(status);
     }
 
     private record JsonEntry(String json, long expiresAtMs) {}

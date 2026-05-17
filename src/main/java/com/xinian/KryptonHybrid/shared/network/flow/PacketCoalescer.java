@@ -10,7 +10,6 @@ import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
-import net.minecraft.network.syncher.SynchedEntityData;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -58,7 +57,7 @@ public final class PacketCoalescer {
     /**
      * Coalesces redundant packets in the given list <strong>in-place</strong>.
      * Must be called before the list is sent or wrapped in a
-     * {@link ClientboundBundlePacket}.
+     * the packet list is sent.
      *
      * @param packets mutable list of packets for a single player connection
      */
@@ -100,35 +99,13 @@ public final class PacketCoalescer {
                     teleportedEntities.add(teleport.getId());
                 }
             } else if (pkt instanceof ClientboundSetEntityDataPacket data) {
-                // Merge multiple metadata updates for the same entity into a single
-                // packet.  Newer (later index) values supersede older for the same
-                // DataValue.id().  Merging (vs. drop-older) preserves any unique
-                // slots updated only in the earlier packet ??important when
-                // unrelated metadata fields tick at different rates.
-                int entityId = data.id();
+                int entityId = data.getId();
                 if (dataMergeIdx == null) dataMergeIdx = new Int2IntOpenHashMap();
                 int laterIdx = dataMergeIdx.getOrDefault(entityId, -1);
                 if (laterIdx == -1) {
                     dataMergeIdx.put(entityId, i);
                 } else {
-                    ClientboundSetEntityDataPacket later =
-                        (ClientboundSetEntityDataPacket) packets.get(laterIdx);
-                    List<SynchedEntityData.DataValue<?>> laterItems = later.packedItems();
-                    List<SynchedEntityData.DataValue<?>> earlierItems = data.packedItems();
-                    IntOpenHashSet ids = new IntOpenHashSet(laterItems.size() + earlierItems.size());
-                    List<SynchedEntityData.DataValue<?>> merged =
-                        new ArrayList<>(laterItems.size() + earlierItems.size());
-                    // Later items take priority ??add first, mark id seen.
-                    for (SynchedEntityData.DataValue<?> v : laterItems) {
-                        ids.add(v.id());
-                        merged.add(v);
-                    }
-                    // Add earlier items only if their slot wasn't already overridden.
-                    for (SynchedEntityData.DataValue<?> v : earlierItems) {
-                        if (ids.add(v.id())) merged.add(v);
-                    }
-                    packets.set(laterIdx, new ClientboundSetEntityDataPacket(entityId, merged));
-                    packets.remove(i); // i > laterIdx, so laterIdx index unaffected
+                    packets.remove(i);
                 }
             } else if (pkt instanceof ClientboundRotateHeadPacket headRot) {
                 int entityId = ((RotateHeadPacketAccessor) headRot).krypton$getEntityId();

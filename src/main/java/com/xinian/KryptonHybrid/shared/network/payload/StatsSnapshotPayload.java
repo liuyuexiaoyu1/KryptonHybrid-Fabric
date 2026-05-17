@@ -55,7 +55,7 @@ public record StatsSnapshotPayload(
         List<ModEntry> topMods
 ) {
     public static final int MAX_TOP_MODS = 64;
-    public static final ResourceLocation ID = ResourceLocation.fromNamespaceAndPath("krypton_hybrid", "stats_snapshot");
+    public static final ResourceLocation ID = new ResourceLocation("krypton_hybrid", "stats_snapshot");
 
     public record ModEntry(String modId, long packets, long bytes) {}
 

@@ -15,7 +15,7 @@ import java.util.BitSet;
 import java.util.List;
 
 /**
- * Read-side Mixin for {@link ClientboundLightUpdatePacket} (Forge 1.20.1).
+ * Read-side Mixin for {@link ClientboundLightUpdatePacket} (Forge 1.19.2).
  *
  * <p>{@link ClientboundLightUpdatePacket} is the standalone light-update packet sent when
  * lighting changes after the chunk has already been loaded on the client. It uses the same
@@ -28,7 +28,7 @@ import java.util.List;
  * the decompressed data into a vanilla-format buffer before passing it to the original
  * vanilla constructor.</p>
  *
- * <p>1.20.1 specific: the {@code trustEdges} field was removed from
+ * <p>1.19.2 specific: the {@code trustEdges} field is not part of
  * {@link ClientboundLightUpdatePacketData}; this class therefore omits it entirely.</p>
  */
 @Mixin(ClientboundLightUpdatePacket.class)

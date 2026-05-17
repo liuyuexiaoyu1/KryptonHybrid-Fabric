@@ -15,7 +15,7 @@ import java.util.BitSet;
 import java.util.List;
 
 /**
- * Optimizes {@link ClientboundLightUpdatePacketData} serialization for Forge 1.20.1.
+ * Optimizes {@link ClientboundLightUpdatePacketData} serialization for Forge 1.19.2.
  *
  * <h3>Problem</h3>
  * <p>Each non-empty light section (DataLayer) is always serialized as a raw 2048-byte
@@ -27,7 +27,7 @@ import java.util.List;
  *
  * <h3>Differences from 1.19.2</h3>
  * <p>The {@code trustEdges} boolean field was removed from
- * {@link ClientboundLightUpdatePacketData} in 1.20.1. This class therefore omits it
+ * {@link ClientboundLightUpdatePacketData} in 1.19.2. This class therefore omits it
  * entirely. The wire format is otherwise identical to the 1.19.2 variant.</p>
  *
  * <h3>Solution ??Uniform-RLE light encoding</h3>

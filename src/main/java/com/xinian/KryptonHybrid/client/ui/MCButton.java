@@ -1,10 +1,11 @@
 package com.xinian.KryptonHybrid.client.ui;
 
+import com.xinian.KryptonHybrid.client.compat.KryptonGuiGraphics;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
+import com.mojang.blaze3d.vertex.PoseStack;
 
 /** Modern web-style themed button (ported from MemoryCatcher). */
 public class MCButton extends AbstractWidget {
@@ -23,7 +24,8 @@ public class MCButton extends AbstractWidget {
     }
 
     @Override
-    public void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    public void renderButton(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+        KryptonGuiGraphics g = new KryptonGuiGraphics(poseStack);
         updateAnimations(partialTick);
         var c = UITheme.colors();
         int x = getX(), y = getY(), w = getWidth(), h = getHeight();
@@ -83,6 +85,10 @@ public class MCButton extends AbstractWidget {
         g.drawString(mc.font, label, tx, ty, textColor, true);
     }
 
+    public int getX() { return this.x; }
+
+    public int getY() { return this.y; }
+
     private static String truncate(Minecraft mc, String text, int maxWidth) {
         if (maxWidth <= 0) return "";
         if (text == null || text.isEmpty()) return "";
@@ -114,7 +120,7 @@ public class MCButton extends AbstractWidget {
     }
 
     @Override
-    protected void updateWidgetNarration(NarrationElementOutput output) {
+    public void updateNarration(NarrationElementOutput output) {
         this.defaultButtonNarrationText(output);
     }
 }
