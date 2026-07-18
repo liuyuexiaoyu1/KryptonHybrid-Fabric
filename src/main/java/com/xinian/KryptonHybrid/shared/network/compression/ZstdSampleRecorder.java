@@ -6,7 +6,7 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -167,7 +167,7 @@ public final class ZstdSampleRecorder {
         return sanitize(packet.getClass().getSimpleName());
     }
 
-    private static String sanitizePayloadId(ResourceLocation id) {
+    private static String sanitizePayloadId(Identifier id) {
         return sanitize("custom_" + id.getNamespace() + "_" + id.getPath());
     }
 

@@ -69,8 +69,8 @@ public final class DelayedChunkCache {
         // Only cache chunks within the configured extra-distance radius.
         int maxDist = KryptonConfig.dccDistance;
         ChunkPos playerChunk = player.chunkPosition();
-        int dx = pos.x - playerChunk.x;
-        int dz = pos.z - playerChunk.z;
+        int dx = pos.x() - playerChunk.x();
+        int dz = pos.z() - playerChunk.z();
         if (dx * dx + dz * dz > maxDist * maxDist) return false;
 
         PlayerEntry e = perPlayerCache.computeIfAbsent(player, k -> new PlayerEntry(dimension));
@@ -82,7 +82,7 @@ public final class DelayedChunkCache {
         // If the cache is already at the size limit, skip caching this chunk.
         if (e.entries.size() >= KryptonConfig.dccSizeLimit) return false;
 
-        e.entries.put(pos.toLong(), System.currentTimeMillis());
+        e.entries.put(pos.pack(), System.currentTimeMillis());
         return true;
     }
 
@@ -105,7 +105,7 @@ public final class DelayedChunkCache {
         }
 
         // remove() returns ABSENT (-1) when the key is not present.
-        return e.entries.remove(pos.toLong()) != ABSENT;
+        return e.entries.remove(pos.pack()) != ABSENT;
     }
 
     /**
@@ -140,8 +140,8 @@ public final class DelayedChunkCache {
             int maxDist    = KryptonConfig.dccDistance;
             int maxDistSq  = maxDist * maxDist;
             ChunkPos pChunk = player.chunkPosition();
-            int px = pChunk.x;
-            int pz = pChunk.z;
+            int px = pChunk.x();
+            int pz = pChunk.z();
 
             ObjectIterator<Long2LongMap.Entry> iter = Long2LongMaps.fastIterator(e.entries);
             while (iter.hasNext()) {
@@ -149,9 +149,9 @@ public final class DelayedChunkCache {
                 long packedPos = entry.getLongKey();
                 long timestamp = entry.getLongValue();
 
-                ChunkPos pos = new ChunkPos(packedPos);
-                int dx = pos.x - px;
-                int dz = pos.z - pz;
+                ChunkPos pos = ChunkPos.unpack(packedPos);
+                int dx = pos.x() - px;
+                int dz = pos.z() - pz;
                 boolean tooFar  = (dx * dx + dz * dz) > maxDistSq;
                 boolean expired = (now - timestamp) >= timeoutMs;
 

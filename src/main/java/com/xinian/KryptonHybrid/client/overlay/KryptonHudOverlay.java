@@ -6,19 +6,17 @@ import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.LayeredDraw;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
 
 /**
- * MemoryCatcher-style in-game HUD layer for Krypton Hybrid.
+ * MemoryCatcher-style in-game HUD overlay for Krypton Hybrid.
  * Renders a compact rounded panel with algorithm, savings bar, throughput, and
- * the top traffic-consuming mod. Spacing follows {@code font.lineHeight} so the
- * overlay scales correctly with the in-game GUI scale.
+ * the top traffic-consuming mod.  Uses the 26.2 state-extraction rendering API.
  */
-public final class KryptonHudOverlay implements LayeredDraw.Layer {
+public final class KryptonHudOverlay {
 
     public enum HudAnchor { TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT }
 
@@ -52,11 +50,11 @@ public final class KryptonHudOverlay implements LayeredDraw.Layer {
     public static void setShowTopMod(boolean value) { showTopMod = value; }
     public static void toggleShowTopMod() { showTopMod = !showTopMod; }
 
-    @Override
-    public void render(GuiGraphics graphics, DeltaTracker deltaTracker) {
+    /** Called from a Hud.extractRenderState mixin. */
+    public static void extractRenderState(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
         if (!visible) return;
         Minecraft mc = Minecraft.getInstance();
-        if (mc.screen != null || mc.player == null) return;
+        if (mc.gui.screen() != null || mc.player == null) return;
 
         StatsSnapshotPayload snap = KryptonStatsClientController.latestSnapshot();
         long now = System.currentTimeMillis();
@@ -69,7 +67,6 @@ public final class KryptonHudOverlay implements LayeredDraw.Layer {
         var c = UITheme.colors();
         int lineH = mc.font.lineHeight + 2;
 
-        // Compute number of lines: head + bar + sent + recv + saved + (optional top mod)
         boolean hasTop = showTopMod && !snap.topMods().isEmpty();
         int lines = 5 + (hasTop ? 1 : 0);
         int panelHeight = PADDING * 2 + lineH + BAR_HEIGHT + 4 + (lines - 2) * lineH;
@@ -115,7 +112,7 @@ public final class KryptonHudOverlay implements LayeredDraw.Layer {
                 snap.compressionAlgorithm(),
                 String.format("%.1f%%", snap.savingPercent())).getString();
         int headColor = qualityColor(snap.savingPercent(), c);
-        graphics.drawString(mc.font, head, x, y, headColor, false);
+        graphics.text(mc.font, head, x, y, headColor, false);
 
         y += lineH;
         double clamped = Math.max(0.0, Math.min(100.0, snap.savingPercent()));
@@ -130,33 +127,31 @@ public final class KryptonHudOverlay implements LayeredDraw.Layer {
                 UITheme.withAlpha(c.widgetBorder(), 0x60));
 
         y += BAR_HEIGHT + 3;
-        graphics.drawString(mc.font,
+        graphics.text(mc.font,
                 Component.translatable("hud.krypton_hybrid.tx", NetworkTrafficStats.formatBytes(snap.wireBytesPerSecond())).getString(),
                 x, y, c.textSecondary(), false);
         y += lineH;
-        graphics.drawString(mc.font,
+        graphics.text(mc.font,
                 Component.translatable("hud.krypton_hybrid.rx", NetworkTrafficStats.formatBytes(snap.receivedBytesPerSecond())).getString(),
                 x, y, c.textSecondary(), false);
         y += lineH;
-        graphics.drawString(mc.font,
+        graphics.text(mc.font,
                 Component.translatable("hud.krypton_hybrid.saved", NetworkTrafficStats.formatBytes(snap.savedBytes())).getString(),
                 x, y, c.textMuted(), false);
 
         if (hasTop) {
             y += lineH;
-            // Pick mod with largest bytes (topMods is already sorted server-side, but be safe)
             List<StatsSnapshotPayload.ModEntry> mods = snap.topMods();
             StatsSnapshotPayload.ModEntry top = mods.get(0);
             for (StatsSnapshotPayload.ModEntry e : mods)
                 if (e.bytes() > top.bytes()) top = e;
             String right = NetworkTrafficStats.formatBytes(top.bytes());
             int rw = mc.font.width(right);
-            // Reserve gutter for the right-aligned size and a small spacer.
             int leftMaxW = panelWidth - PADDING * 2 - rw - 6;
             String left = Component.translatable("hud.krypton_hybrid.top_mod",
                     truncate(mc.font, top.modId(), leftMaxW - mc.font.width("▶ "))).getString();
-            graphics.drawString(mc.font, left, x, y, c.accentLight(), false);
-            graphics.drawString(mc.font, right, panelX + panelWidth - PADDING - rw, y, c.textSecondary(), false);
+            graphics.text(mc.font, left, x, y, c.accentLight(), false);
+            graphics.text(mc.font, right, panelX + panelWidth - PADDING - rw, y, c.textSecondary(), false);
         }
     }
 
@@ -175,4 +170,3 @@ public final class KryptonHudOverlay implements LayeredDraw.Layer {
         return c.dangerColor();
     }
 }
-

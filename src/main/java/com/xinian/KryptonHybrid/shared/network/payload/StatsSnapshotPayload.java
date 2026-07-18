@@ -6,7 +6,7 @@ import com.xinian.KryptonHybrid.shared.network.security.SecurityMetrics;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -68,7 +68,7 @@ public record StatsSnapshotPayload(
     public record ModEntry(String modId, long packets, long bytes) {}
 
     public static final Type<StatsSnapshotPayload> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath("krypton_hybrid", "stats_snapshot"));
+            Identifier.fromNamespaceAndPath("krypton_hybrid", "stats_snapshot"));
 
     public static final StreamCodec<FriendlyByteBuf, StatsSnapshotPayload> STREAM_CODEC =
             StreamCodec.of(

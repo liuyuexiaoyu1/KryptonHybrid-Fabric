@@ -1,5 +1,7 @@
 package com.xinian.KryptonHybrid.mixin.network.chunk;
 
+import com.xinian.KryptonHybrid.shared.network.util.KryptonConnectionUtil;
+
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import net.minecraft.server.level.ChunkMap;
@@ -58,7 +60,7 @@ public abstract class PlayerChunkSenderMixin {
 
     @Inject(method = "markChunkPendingToSend", at = @At("TAIL"))
     private void krypton$trackPendingChunkAge(LevelChunk chunk, CallbackInfo ci) {
-        long pos = chunk.getPos().toLong();
+        long pos = chunk.getPos().pack();
         if (this.krypton$enqueueTimeMs.get(pos) == KRYPTON_ABSENT) {
             this.krypton$enqueueTimeMs.put(pos, System.currentTimeMillis());
         }
@@ -66,16 +68,16 @@ public abstract class PlayerChunkSenderMixin {
 
     @Inject(method = "dropChunk", at = @At("TAIL"))
     private void krypton$clearDroppedChunkAge(ServerPlayer player, ChunkPos chunkPos, CallbackInfo ci) {
-        this.krypton$enqueueTimeMs.remove(chunkPos.toLong());
+        this.krypton$enqueueTimeMs.remove(chunkPos.pack());
     }
 
     @Inject(method = "sendNextChunks", at = @At("HEAD"))
     private void krypton$sendNextChunksHead(ServerPlayer player, CallbackInfo ci) {
         // Exception recovery in case a previous send path failed before RETURN.
-        AutoFlushUtil.setAutoFlush(player.connection.getConnection(), true);
+        AutoFlushUtil.setAutoFlush(KryptonConnectionUtil.connection(player.connection), true);
 
         this.krypton$sendChunksAutoFlushActive = true;
-        AutoFlushUtil.setAutoFlush(player.connection.getConnection(), false);
+        AutoFlushUtil.setAutoFlush(KryptonConnectionUtil.connection(player.connection), false);
 
         this.krypton$hasSendContext = true;
         this.krypton$ctxVelX = player.getDeltaMovement().x;
@@ -88,7 +90,7 @@ public abstract class PlayerChunkSenderMixin {
 
         if (this.krypton$sendChunksAutoFlushActive) {
             this.krypton$sendChunksAutoFlushActive = false;
-            AutoFlushUtil.setAutoFlush(player.connection.getConnection(), true);
+            AutoFlushUtil.setAutoFlush(KryptonConnectionUtil.connection(player.connection), true);
         }
     }
 
@@ -134,7 +136,7 @@ public abstract class PlayerChunkSenderMixin {
         for (int i = 0; i < resultSize; i++) {
             LevelChunk chunk = candidates.get(i);
             result.add(chunk);
-            long packed = chunk.getPos().toLong();
+            long packed = chunk.getPos().pack();
             this.pendingChunks.remove(packed);
             this.krypton$enqueueTimeMs.remove(packed);
         }
@@ -144,12 +146,12 @@ public abstract class PlayerChunkSenderMixin {
 
     @Unique
     private double krypton$priorityScore(ChunkPos candidate, ChunkPos playerChunk, long nowMs) {
-        int dx = candidate.x - playerChunk.x;
-        int dz = candidate.z - playerChunk.z;
+        int dx = candidate.x() - playerChunk.x();
+        int dz = candidate.z() - playerChunk.z();
 
         double distanceScore = dx * dx + dz * dz;
 
-        long enqueuedAt = this.krypton$enqueueTimeMs.get(candidate.toLong());
+        long enqueuedAt = this.krypton$enqueueTimeMs.get(candidate.pack());
         double ageSeconds = enqueuedAt == KRYPTON_ABSENT ? 0.0 : Math.max(0.0, (nowMs - enqueuedAt) / 1000.0);
         double ageBias = Math.min(ageSeconds, 10.0) * 2.0;
 

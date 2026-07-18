@@ -1,6 +1,8 @@
 package com.xinian.KryptonHybrid.mixin.network.chunk;
 
 import com.google.common.collect.Lists;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import io.netty.buffer.Unpooled;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.game.ClientboundLightUpdatePacket;
@@ -8,7 +10,6 @@ import net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
 
 import java.util.Arrays;
 import java.util.BitSet;
@@ -23,13 +24,10 @@ import java.util.List;
  * intercepted by {@link ChunkLightCompressMixin} and will emit Krypton-compressed data.</p>
  *
  * <p>This Mixin intercepts the {@code new ClientboundLightUpdatePacketData(buf, x, z)} call
- * inside the network constructor of {@link ClientboundLightUpdatePacket} via {@code @Redirect},
+ * inside the network constructor of {@link ClientboundLightUpdatePacket} via {@code @WrapOperation},
  * decodes the Krypton format when the marker byte {@code 0x4B} is present, and re-serialises
  * the decompressed data into a vanilla-format buffer before passing it to the original
  * vanilla constructor.</p>
- *
- * <p>1.20.1 specific: the {@code trustEdges} field was removed from
- * {@link ClientboundLightUpdatePacketData}; this class therefore omits it entirely.</p>
  */
 @Mixin(ClientboundLightUpdatePacket.class)
 public abstract class ClientboundLightUpdatePacketMixin {
@@ -38,14 +36,14 @@ public abstract class ClientboundLightUpdatePacketMixin {
     @Unique private static final byte ENC_RAW        = 0x00;
     @Unique private static final byte ENC_UNIFORM    = 0x01;
 
-    @Redirect(
+    @WrapOperation(
             method = "<init>(Lnet/minecraft/network/FriendlyByteBuf;)V",
             at = @At(
                     value = "NEW",
                     target = "net/minecraft/network/protocol/game/ClientboundLightUpdatePacketData"
             )
     )
-    private ClientboundLightUpdatePacketData readLightData$krypton(FriendlyByteBuf buf, int x, int z) {
+    private ClientboundLightUpdatePacketData readLightData$krypton(FriendlyByteBuf buf, int x, int z, Operation<ClientboundLightUpdatePacketData> original) {
         if (buf.getUnsignedByte(buf.readerIndex()) != KRYPTON_MARKER) {
             return new ClientboundLightUpdatePacketData(buf, x, z);
         }

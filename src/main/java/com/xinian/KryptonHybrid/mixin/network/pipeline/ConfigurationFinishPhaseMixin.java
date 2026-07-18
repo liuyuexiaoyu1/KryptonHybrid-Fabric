@@ -1,5 +1,7 @@
 package com.xinian.KryptonHybrid.mixin.network.pipeline;
 
+import com.xinian.KryptonHybrid.shared.network.util.KryptonConnectionUtil;
+
 import com.xinian.KryptonHybrid.shared.network.control.PacketControlPhase;
 import com.xinian.KryptonHybrid.shared.network.control.PacketControlState;
 import net.minecraft.network.Connection;
@@ -25,7 +27,7 @@ public abstract class ConfigurationFinishPhaseMixin {
     private void krypton$advancePacketControlPhase(ServerboundFinishConfigurationPacket packet, CallbackInfo ci) {
         Connection conn = ((IServerCommonListenerAccessor) (Object) this).krypton$getConnection();
         if (conn != null) {
-            PacketControlState.get(conn.channel()).setPhase(PacketControlPhase.PLAY);
+            PacketControlState.get(KryptonConnectionUtil.channel(conn)).setPhase(PacketControlPhase.PLAY);
         }
     }
 }

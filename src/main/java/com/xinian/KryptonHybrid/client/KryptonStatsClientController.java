@@ -3,17 +3,14 @@ package com.xinian.KryptonHybrid.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.xinian.KryptonHybrid.client.overlay.KryptonHudOverlay;
 import com.xinian.KryptonHybrid.client.screen.KryptonStatsScreen;
-import com.xinian.KryptonHybrid.KryptonHybrid;
+import com.xinian.KryptonHybrid.shared.network.payload.StatsRequestPayload;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
-import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
-import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
-import net.neoforged.neoforge.common.NeoForge;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 /**
@@ -31,18 +28,22 @@ public final class KryptonStatsClientController {
 
     private static final long SNAPSHOT_REQUEST_COOLDOWN_MS = 750L;
 
+    /** Category for Krypton Hybrid keybindings. */
+    private static final KeyMapping.Category KRYPTON_CATEGORY =
+            KeyMapping.Category.register(Identifier.fromNamespaceAndPath("krypton_hybrid", "key.categories.krypton_hybrid"));
+
     private static final KeyMapping OPEN_STATS_KEY = new KeyMapping(
             "key.krypton_hybrid.open_stats",
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_K,
-            "key.categories.krypton_hybrid"
+            KRYPTON_CATEGORY
     );
 
     private static final KeyMapping TOGGLE_HUD_KEY = new KeyMapping(
             "key.krypton_hybrid.toggle_hud",
             InputConstants.Type.KEYSYM,
             InputConstants.UNKNOWN.getValue(),
-            "key.categories.krypton_hybrid"
+            KRYPTON_CATEGORY
     );
 
     private static StatsSnapshotPayload latestSnapshot;
@@ -55,26 +56,12 @@ public final class KryptonStatsClientController {
 
     private KryptonStatsClientController() {}
 
-    public static void init(IEventBus modEventBus) {
-        modEventBus.addListener(KryptonStatsClientController::onRegisterKeyMappings);
-        modEventBus.addListener(KryptonStatsClientController::onRegisterGuiLayers);
-        NeoForge.EVENT_BUS.addListener(KryptonStatsClientController::onClientTick);
+    public static void init() {
+        // KeyMappings auto-register via their constructor — no Fabric helper needed.
+        ClientTickEvents.END_CLIENT_TICK.register(KryptonStatsClientController::onClientTick);
     }
 
-    private static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
-        event.register(OPEN_STATS_KEY);
-        event.register(TOGGLE_HUD_KEY);
-    }
-
-    private static void onRegisterGuiLayers(RegisterGuiLayersEvent event) {
-        event.registerAboveAll(
-                ResourceLocation.fromNamespaceAndPath(KryptonHybrid.MODID, "stats_hud"),
-                new KryptonHudOverlay()
-        );
-    }
-
-    private static void onClientTick(ClientTickEvent.Post event) {
-        Minecraft minecraft = Minecraft.getInstance();
+    private static void onClientTick(Minecraft minecraft) {
         if (minecraft.player == null) return;
 
         while (OPEN_STATS_KEY.consumeClick()) {
@@ -82,11 +69,10 @@ public final class KryptonStatsClientController {
         }
         while (TOGGLE_HUD_KEY.consumeClick()) {
             KryptonHudOverlay.toggleVisible();
-            minecraft.gui.setOverlayMessage(
+            minecraft.player.sendOverlayMessage(
                     Component.translatable(KryptonHudOverlay.isVisible()
                             ? "gui.krypton_hybrid.hud.on"
-                            : "gui.krypton_hybrid.hud.off"),
-                    false);
+                            : "gui.krypton_hybrid.hud.off"));
         }
     }
 
@@ -99,12 +85,9 @@ public final class KryptonStatsClientController {
         }
 
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.screen instanceof KryptonStatsScreen screen) {
+        if (minecraft.gui.screen() instanceof KryptonStatsScreen screen) {
             screen.updateSnapshot(payload);
         } else if (!KryptonHudOverlay.isVisible()) {
-            // Preserve legacy behaviour: server-pushed snapshot pops the dashboard
-            // open. When the HUD is on it auto-refreshes every 2s; suppress
-            // auto-open so the GUI does not steal focus.
             open(payload);
         }
     }
@@ -129,7 +112,7 @@ public final class KryptonStatsClientController {
         }
         requestFreshSnapshot();
         if (latestSnapshot == null) {
-            minecraft.gui.setOverlayMessage(Component.translatable("gui.krypton_hybrid.hint.requesting"), false);
+            minecraft.player.sendOverlayMessage(Component.translatable("gui.krypton_hybrid.hint.requesting"));
         }
     }
 
@@ -143,12 +126,11 @@ public final class KryptonStatsClientController {
         lastRequestAtMs = now;
         lastRequestSentAtMs = now;
         snapshotRequestCount++;
-        minecraft.player.connection.sendUnsignedCommand("krypton stats gui");
+        ClientPlayNetworking.send(StatsRequestPayload.INSTANCE);
     }
 
     public static void open(StatsSnapshotPayload payload) {
         Minecraft minecraft = Minecraft.getInstance();
-        minecraft.setScreen(new KryptonStatsScreen(payload));
+        minecraft.gui.setScreen(new KryptonStatsScreen(payload));
     }
 }
-

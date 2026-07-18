@@ -78,8 +78,12 @@ public class NettyResourceGuard extends ChannelDuplexHandler {
             return;
         }
 
-        // Decrement on completion
-        promise.addListener((ChannelFutureListener) future -> pendingWrites.decrementAndGet());
+        // Decrement on completion (skip when promise is a VoidChannelPromise,
+        // which doesn't allow listeners — Minecraft uses voidPromise() in
+        // Connection.doSendPacket when no listener is needed).
+        if (!(promise instanceof VoidChannelPromise)) {
+            promise.addListener((ChannelFutureListener) future -> pendingWrites.decrementAndGet());
+        }
 
         super.write(ctx, msg, promise);
     }

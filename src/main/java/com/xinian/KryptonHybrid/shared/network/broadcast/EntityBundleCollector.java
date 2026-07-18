@@ -5,6 +5,7 @@ import com.xinian.KryptonHybrid.shared.network.motion.MotionDeltaCache;
 import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.BundlerInfo;
 import net.minecraft.network.protocol.game.ClientboundBundlePacket;
 import net.minecraft.server.network.ServerPlayerConnection;
 
@@ -217,15 +218,20 @@ public final class EntityBundleCollector {
             batchPlayers++;
 
             if (packets.size() == 1) {
-                // Single packet: send directly, no bundle overhead
                 conn.send(packets.get(0));
             } else {
-                emittedBundles++;
-                packetsInBundles += packets.size();
-                // Multiple packets: wrap in a BundlePacket
-                conn.send(new ClientboundBundlePacket(
-                        (Iterable<Packet<? super ClientGamePacketListener>>) (Iterable<?>) packets
-                ));
+                // Split into chunks of BUNDLE_SIZE_LIMIT (4096) to avoid
+                // "Too many packets in a bundle" in 26.2.
+                int limit = BundlerInfo.BUNDLE_SIZE_LIMIT;
+                for (int i = 0; i < packets.size(); i += limit) {
+                    int end = Math.min(i + limit, packets.size());
+                    List<Packet<?>> chunk = packets.subList(i, end);
+                    emittedBundles++;
+                    packetsInBundles += chunk.size();
+                    conn.send(new ClientboundBundlePacket(
+                            (Iterable<Packet<? super ClientGamePacketListener>>) (Iterable<?>) chunk
+                    ));
+                }
             }
         }
 

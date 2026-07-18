@@ -5,8 +5,6 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.entity.EntitySectionStorage;
 import net.minecraft.world.level.entity.TransientEntitySectionManager;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Implements;
 import org.spongepowered.asm.mixin.Interface;
@@ -22,7 +20,6 @@ import java.util.Collection;
 @SuppressWarnings("unchecked")
 @Mixin(ClientLevel.class)
 @Implements(@Interface(iface = WorldEntityByChunkAccess.class, prefix = "krypton$"))
-@OnlyIn(Dist.CLIENT)
 public abstract class ClientLevelMixin {
 
     @Shadow @Final private TransientEntitySectionManager<Entity> entityStorage;

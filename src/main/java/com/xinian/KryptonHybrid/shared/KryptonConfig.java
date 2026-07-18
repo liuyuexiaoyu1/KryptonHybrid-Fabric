@@ -151,7 +151,7 @@ public final class KryptonConfig {
     public static volatile int securityMaxCompressionRatio = 100;
 
     /** Minimum compressed byte count before ratio checks become meaningful. */
-    public static volatile int securityMinCompressedBytesForRatioCheck = 8;
+    public static volatile int securityMinCompressedBytesForRatioCheck = 256;
 
 
     public static volatile int securityHandshakeTimeoutSec = 5;

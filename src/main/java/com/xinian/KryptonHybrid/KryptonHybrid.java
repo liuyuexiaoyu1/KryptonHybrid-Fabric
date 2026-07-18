@@ -1,127 +1,75 @@
 package com.xinian.KryptonHybrid;
 
+import com.xinian.KryptonHybrid.shared.network.util.KryptonConnectionUtil;
+
 import com.xinian.KryptonHybrid.command.KryptonStatsCommand;
+import com.xinian.KryptonHybrid.mixin.network.pipeline.IServerCommonListenerAccessor;
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import com.xinian.KryptonHybrid.shared.KryptonSharedBootstrap;
-import com.xinian.KryptonHybrid.shared.network.handshake.KryptonHelloConfigurationTask;
-import com.xinian.KryptonHybrid.shared.network.handshake.KryptonHelloPayload;
-import com.xinian.KryptonHybrid.shared.network.handshake.KryptonNetworkHandler;
-import com.xinian.KryptonHybrid.shared.network.control.PacketControlState;
 import com.xinian.KryptonHybrid.shared.network.compression.ZstdUtil;
+import com.xinian.KryptonHybrid.shared.network.control.PacketControlState;
+import com.xinian.KryptonHybrid.shared.network.handshake.KryptonHelloPayload;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsRequestPayload;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
 import com.xinian.KryptonHybrid.shared.network.security.MotdCache;
+import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerConfigurationConnectionEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.network.Connection;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.neoforge.network.PacketDistributor;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.config.ModConfig;
-import net.neoforged.fml.event.config.ModConfigEvent;
-import net.neoforged.fml.loading.FMLEnvironment;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.RegisterCommandsEvent;
-import net.neoforged.neoforge.network.event.RegisterConfigurationTasksEvent;
-import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
-import net.neoforged.neoforge.network.handling.DirectionalPayloadHandler;
-import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Mod(KryptonHybrid.MODID)
-public final class KryptonHybrid {
+public final class KryptonHybrid implements ModInitializer {
     public static final String MODID = "krypton_hybrid";
+    public static final Logger LOGGER = LoggerFactory.getLogger(MODID);
 
-    public KryptonHybrid(IEventBus modEventBus, ModContainer modContainer) {
-        modContainer.registerConfig(ModConfig.Type.COMMON, KryptonForgeConfig.SPEC);
+    @Override
+    public void onInitialize() {
+        KryptonFabricConfig.load();
+        MotdCache.invalidate();
+        ZstdUtil.reloadDictionary();
 
-        modEventBus.addListener(this::onConfigLoad);
-        modEventBus.addListener(this::onConfigReload);
-        modEventBus.addListener(this::onRegisterPayloads);
-        modEventBus.addListener(this::onRegisterConfigurationTasks);
+        registerPayloadTypes();
+        registerServerNetworking();
 
-        NeoForge.EVENT_BUS.addListener(this::onRegisterCommands);
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
+                KryptonStatsCommand.register(dispatcher));
 
-        if (FMLEnvironment.dist.isClient()) {
-            com.xinian.KryptonHybrid.client.KryptonStatsClientController.init(modEventBus);
-        }
-
-        KryptonSharedBootstrap.run(FMLEnvironment.dist.isClient());
+        KryptonSharedBootstrap.run(false);
+        LOGGER.info("Krypton config loaded - compression algorithm: {}, zstd status: {}",
+                KryptonConfig.compressionAlgorithm,
+                ZstdUtil.statusDescription());
     }
 
-    private void onConfigLoad(ModConfigEvent.Loading event) {
-        if (event.getConfig().getSpec() == KryptonForgeConfig.SPEC) {
-            KryptonForgeConfig.INSTANCE.bake();
-            MotdCache.invalidate();
-            ZstdUtil.reloadDictionary();
-        }
+    private static void registerPayloadTypes() {
+        PayloadTypeRegistry.clientboundConfiguration().register(KryptonHelloPayload.TYPE, KryptonHelloPayload.STREAM_CODEC);
+        PayloadTypeRegistry.serverboundConfiguration().register(KryptonHelloPayload.TYPE, KryptonHelloPayload.STREAM_CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(StatsSnapshotPayload.TYPE, StatsSnapshotPayload.STREAM_CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(StatsRequestPayload.TYPE, StatsRequestPayload.STREAM_CODEC);
     }
 
-    private void onConfigReload(ModConfigEvent.Reloading event) {
-        if (event.getConfig().getSpec() == KryptonForgeConfig.SPEC) {
-            KryptonForgeConfig.INSTANCE.bake();
-            MotdCache.invalidate();
-            ZstdUtil.reloadDictionary();
-            KryptonSharedBootstrap.LOGGER.info(
-                    "Krypton config reloaded - compression algorithm: {}, zstd status: {}",
-                    KryptonConfig.compressionAlgorithm,
-                    ZstdUtil.statusDescription());
-        }
-    }
+    private static void registerServerNetworking() {
+        ServerConfigurationConnectionEvents.CONFIGURE.register((handler, server) -> {
+            if (ServerConfigurationNetworking.canSend(handler, KryptonHelloPayload.TYPE)) {
+                Connection connection = ((IServerCommonListenerAccessor) handler).krypton$getConnection();
+                PacketControlState.get(KryptonConnectionUtil.channel(connection)).markHelloAvailable();
+                ServerConfigurationNetworking.send(handler, KryptonHelloPayload.current());
+            }
+        });
 
-    private void onRegisterCommands(RegisterCommandsEvent event) {
-        KryptonStatsCommand.register(event.getDispatcher());
-    }
+        ServerConfigurationNetworking.registerGlobalReceiver(KryptonHelloPayload.TYPE, (payload, context) -> {
+            Connection connection = ((IServerCommonListenerAccessor) context.packetListener()).krypton$getConnection();
+            PacketControlState.get(KryptonConnectionUtil.channel(connection)).markHelloNegotiated(payload.featureFlags());
+        });
 
-    private void onRegisterConfigurationTasks(RegisterConfigurationTasksEvent event) {
-        if (event.getListener().hasChannel(KryptonHelloPayload.TYPE)) {
-            PacketControlState.get(event.getListener().getConnection().channel()).markHelloAvailable();
-            event.register(KryptonHelloConfigurationTask.INSTANCE);
-        }
-    }
-
-    /**
-     * Registers the {@code krypton_hybrid:hello} payload for capability negotiation.
-     * The channel is marked as optional so vanilla/non-Krypton clients can still connect.
-     */
-    private void onRegisterPayloads(RegisterPayloadHandlersEvent event) {
-        final PayloadRegistrar registrar = event.registrar(MODID)
-                .optional();
-
-        registrar.configurationBidirectional(
-                KryptonHelloPayload.TYPE,
-                KryptonHelloPayload.STREAM_CODEC,
-                new DirectionalPayloadHandler<>(
-                        KryptonNetworkHandler::handleClientHello,
-                        KryptonNetworkHandler::handleServerHello
-                )
-        );
-
-        // Stats GUI snapshot — registered as play-phase, server → client.
-        // Client-only handler is in a separate class to keep dedicated server free
-        // of references to net.minecraft.client.* classes.
-        if (FMLEnvironment.dist.isClient()) {
-            com.xinian.KryptonHybrid.client.KryptonStatsClientPayloadRegistration.register(registrar);
-        } else {
-            // Dedicated server: register the type so it can be sent, but with a
-            // no-op handler (handlers are never invoked server-side for playToClient).
-            registrar.playToClient(
-                    StatsSnapshotPayload.TYPE,
-                    StatsSnapshotPayload.STREAM_CODEC,
-                    (payload, ctx) -> { /* no-op on server */ }
-            );
-        }
-
-        // Stats GUI refresh — client → server. Decouples the dashboard's "Refresh"
-        // button from /krypton stats gui so the GUI never has to round-trip
-        // through the chat/command pipeline.
-        registrar.playToServer(
-                StatsRequestPayload.TYPE,
-                StatsRequestPayload.STREAM_CODEC,
-                (payload, ctx) -> ctx.enqueueWork(() -> {
-                    if (ctx.player() instanceof ServerPlayer player) {
-                        PacketDistributor.sendToPlayer(player, StatsSnapshotPayload.current());
-                    }
-                })
-        );
+        ServerPlayNetworking.registerGlobalReceiver(StatsRequestPayload.TYPE, (payload, context) ->
+                context.server().execute(() -> {
+                    ServerPlayer player = context.player();
+                    ServerPlayNetworking.send(player, StatsSnapshotPayload.current());
+                }));
     }
 }
-

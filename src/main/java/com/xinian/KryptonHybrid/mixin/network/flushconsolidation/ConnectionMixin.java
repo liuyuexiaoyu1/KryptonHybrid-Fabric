@@ -1,5 +1,7 @@
 package com.xinian.KryptonHybrid.mixin.network.flushconsolidation;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import com.xinian.KryptonHybrid.shared.network.flow.ConfigurableAutoFlush;
@@ -10,7 +12,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -45,37 +46,37 @@ public abstract class ConnectionMixin implements ConfigurableAutoFlush {
      * channel directly via {@code ctx.write()} / {@code channel.write()} and rely on the
      * tick flush as the safety net to actually deliver those bytes.
      */
-    @Redirect(
+    @WrapOperation(
             method = "tick",
             at = @At(
                     value = "INVOKE",
-                    target = "Lio/netty/channel/Channel;flush()Lio/netty/channel/Channel;"))
-    private Channel kryptonfnp$suppressTickFlush(Channel channel) {
+                    target = "Lio/netty/channel/Channel;flush()Lio/netty/channel/Channel;",
+                    remap = false))
+    private Channel kryptonfnp$suppressTickFlush(Channel instance, Operation<Channel> original) {
         AtomicBoolean af = this.kryptonfnp$autoFlush;
         if (af != null && !af.get()) {
-
-            return channel;
+            return instance;
         }
-
-        return channel.flush();
+        return original.call(instance);
     }
 
     /**
      * When auto-flush is disabled, use {@code write()} instead of {@code writeAndFlush()} for the
      * primary packet write in {@code doSendPacket}. This buffers packets until flush is called.
      */
-    @Redirect(
+    @WrapOperation(
             method = "doSendPacket",
             at = @At(
                     value = "INVOKE",
                     target = "Lio/netty/channel/Channel;writeAndFlush(Ljava/lang/Object;)Lio/netty/channel/ChannelFuture;",
-                    ordinal = 0))
-    private ChannelFuture kryptonfnp$writeOrFlush(Channel channel, Object msg) {
+                    ordinal = 0,
+                    remap = false))
+    private ChannelFuture kryptonfnp$writeOrFlush(Channel channel, Object msg, Operation<ChannelFuture> original) {
         AtomicBoolean af = this.kryptonfnp$autoFlush;
         if (af != null && !af.get()) {
             return channel.write(msg);
         }
-        return channel.writeAndFlush(msg);
+        return original.call(channel, msg);
     }
 
     @Override

@@ -1,5 +1,7 @@
 package com.xinian.KryptonHybrid.shared.network.util;
 
+import com.xinian.KryptonHybrid.shared.network.util.KryptonConnectionUtil;
+
 import com.xinian.KryptonHybrid.shared.network.flow.ConfigurableAutoFlush;
 import net.minecraft.network.Connection;
 import net.minecraft.server.level.ServerPlayer;
@@ -21,7 +23,7 @@ public final class AutoFlushUtil {
     public static void setAutoFlush(ServerPlayer player, boolean val) {
         // Only apply to vanilla ServerPlayer instances, not subclasses (e.g. fake players)
         if (player.getClass() == ServerPlayer.class) {
-            Connection connection = player.connection.getConnection();
+            Connection connection = KryptonConnectionUtil.connection(player.connection);
             ((ConfigurableAutoFlush) connection).setShouldAutoFlush(val);
         }
     }

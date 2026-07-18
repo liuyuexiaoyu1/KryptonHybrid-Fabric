@@ -1,5 +1,7 @@
 package com.xinian.KryptonHybrid.mixin.network.pipeline;
 
+import com.xinian.KryptonHybrid.shared.network.util.KryptonConnectionUtil;
+
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import com.xinian.KryptonHybrid.shared.network.control.PacketControlPhase;
 import com.xinian.KryptonHybrid.shared.network.control.PacketControlState;
@@ -31,8 +33,8 @@ public class LoginTimeoutAdvanceMixin {
     private void krypton$advanceToPlayTimeout(CallbackInfo ci) {
         if (!KryptonConfig.securityEnabled) return;
         HandshakeTimeoutHandler.advanceStage(
-                this.connection.channel(), HandshakeTimeoutHandler.Stage.PLAY);
-        PacketControlState.get(this.connection.channel()).setPhase(PacketControlPhase.CONFIGURATION);
+                KryptonConnectionUtil.channel(this.connection), HandshakeTimeoutHandler.Stage.PLAY);
+        PacketControlState.get(KryptonConnectionUtil.channel(this.connection)).setPhase(PacketControlPhase.CONFIGURATION);
     }
 }
 

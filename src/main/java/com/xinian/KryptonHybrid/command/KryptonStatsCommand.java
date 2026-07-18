@@ -4,6 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.xinian.KryptonHybrid.KryptonFabricConfig;
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 import com.xinian.KryptonHybrid.shared.network.compression.ZstdSampleRecorder;
@@ -11,13 +12,13 @@ import com.xinian.KryptonHybrid.shared.network.compression.ZstdUtil;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
 import com.xinian.KryptonHybrid.shared.network.security.MotdCache;
 import com.xinian.KryptonHybrid.shared.network.security.SecurityMetrics;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.List;
 
@@ -28,7 +29,7 @@ public final class KryptonStatsCommand {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(
             Commands.literal("krypton")
-                .requires(source -> source.hasPermission(2))
+                .requires(source -> source.permissions() != net.minecraft.server.permissions.PermissionSet.NO_PERMISSIONS)
                 .then(Commands.literal("stats")
                     .then(Commands.literal("show")
                         .executes(KryptonStatsCommand::executeShow))
@@ -71,6 +72,9 @@ public final class KryptonStatsCommand {
                     .then(Commands.literal("dict")
                         .then(Commands.literal("reload")
                             .executes(KryptonStatsCommand::executeZstdDictReload))))
+                .then(Commands.literal("config")
+                    .then(Commands.literal("reload")
+                        .executes(KryptonStatsCommand::executeConfigReload)))
         );
     }
 
@@ -129,7 +133,7 @@ public final class KryptonStatsCommand {
     private static int executeGui(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
         StatsSnapshotPayload snap = StatsSnapshotPayload.current();
-        PacketDistributor.sendToPlayer(player, snap);
+        ServerPlayNetworking.send(player, snap);
         return 1;
     }
 
@@ -328,6 +332,13 @@ public final class KryptonStatsCommand {
         ZstdUtil.reloadDictionary();
         ctx.getSource().sendSuccess(() -> Component.literal(
                         "Reloaded Zstd dictionary: " + ZstdUtil.dictionaryStatusDescription())
+                .withStyle(ChatFormatting.GREEN), true);
+        return 1;
+    }
+
+    private static int executeConfigReload(CommandContext<CommandSourceStack> ctx) {
+        KryptonFabricConfig.reload();
+        ctx.getSource().sendSuccess(() -> Component.literal("Reloaded krypton_hybrid.json")
                 .withStyle(ChatFormatting.GREEN), true);
         return 1;
     }

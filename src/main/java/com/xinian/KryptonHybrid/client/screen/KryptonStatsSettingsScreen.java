@@ -4,8 +4,9 @@ import com.xinian.KryptonHybrid.client.overlay.KryptonHudOverlay;
 import com.xinian.KryptonHybrid.client.ui.MCButton;
 import com.xinian.KryptonHybrid.client.ui.MCPanel;
 import com.xinian.KryptonHybrid.client.ui.UITheme;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 import java.util.concurrent.TimeUnit;
@@ -89,13 +90,12 @@ public final class KryptonStatsSettingsScreen extends Screen {
 
     @Override
     public void onClose() {
-        this.minecraft.setScreen(parent);
+        this.minecraft.gui.setScreen(parent);
     }
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         var c = UITheme.colors();
-        renderBackground(g, mouseX, mouseY, partialTick);
         g.fill(0, 0, this.width, this.height, c.panelBg());
 
         int panelW = Math.min(420, this.width - 24);
@@ -107,13 +107,18 @@ public final class KryptonStatsSettingsScreen extends Screen {
                 .setTitle(Component.translatable("gui.krypton_hybrid.settings.panel").getString());
         panel.render(g, mouseX, mouseY);
 
-        g.drawString(this.font,
+        g.text(this.font,
                 Component.translatable("gui.krypton_hybrid.settings.subtitle").getString(),
                 px + 18, py + 26, c.textSecondary(), false);
 
         for (var renderable : this.renderables) {
-            renderable.render(g, mouseX, mouseY, partialTick);
+            renderable.extractRenderState(g, mouseX, mouseY, partialTick);
         }
+    }
+
+    @Override
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+        // Custom background is handled in extractRenderState
     }
 
     private void refreshLabels() {
@@ -183,4 +188,3 @@ public final class KryptonStatsSettingsScreen extends Screen {
         KryptonHudOverlay.setAutoRefreshIntervalMs(choices[0]);
     }
 }
-

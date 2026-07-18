@@ -79,8 +79,8 @@ public final class MotionDeltaCache {
             Packet<?> pkt = it.next();
             if (pkt instanceof ClientboundSetEntityMotionPacket m) {
                 if (motionMap == null) motionMap = motionMapFor(conn);
-                MotionState prev = motionMap.get(m.getId());
-                double xa = m.getXa(), ya = m.getYa(), za = m.getZa();
+                MotionState prev = motionMap.get(m.id());
+                double xa = m.movement().x(), ya = m.movement().y(), za = m.movement().z();
                 if (prev != null
                         && Math.abs(xa - prev.xa) <= motionThresh
                         && Math.abs(ya - prev.ya) <= motionThresh
@@ -88,14 +88,14 @@ public final class MotionDeltaCache {
                     it.remove();
                     dropped++;
                 } else {
-                    if (prev == null) motionMap.put(m.getId(), new MotionState(xa, ya, za));
+                    if (prev == null) motionMap.put(m.id(), new MotionState(xa, ya, za));
                     else { prev.xa = xa; prev.ya = ya; prev.za = za; }
                 }
             } else if (pkt instanceof ClientboundTeleportEntityPacket t) {
                 if (teleportMap == null) teleportMap = teleportMapFor(conn);
-                TeleportState prev = teleportMap.get(t.getId());
-                double x = t.getX(), y = t.getY(), z = t.getZ();
-                byte yRot = t.getyRot(), xRot = t.getxRot();
+                TeleportState prev = teleportMap.get(t.id());
+                double x = t.change().position().x(), y = t.change().position().y(), z = t.change().position().z();
+                byte yRot = (byte) t.change().yRot(), xRot = (byte) t.change().xRot();
                 if (prev != null
                         && yRot == prev.yRot
                         && xRot == prev.xRot
@@ -103,7 +103,7 @@ public final class MotionDeltaCache {
                     it.remove();
                     dropped++;
                 } else {
-                    if (prev == null) teleportMap.put(t.getId(), new TeleportState(x, y, z, yRot, xRot));
+                    if (prev == null) teleportMap.put(t.id(), new TeleportState(x, y, z, yRot, xRot));
                     else { prev.x = x; prev.y = y; prev.z = z; prev.yRot = yRot; prev.xRot = xRot; }
                 }
             }

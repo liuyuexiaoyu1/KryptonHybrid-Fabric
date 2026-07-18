@@ -1,7 +1,7 @@
 package com.xinian.KryptonHybrid.client.ui;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -68,7 +68,7 @@ public class MCPanel {
         return false;
     }
 
-    public void render(GuiGraphics g, int mouseX, int mouseY) {
+    public void render(GuiGraphicsExtractor g, int mouseX, int mouseY) {
         updateAnimations(mouseX, mouseY);
         var c = UITheme.colors();
         boolean hasTitle = title != null && !title.isEmpty();
@@ -114,7 +114,7 @@ public class MCPanel {
         }
     }
 
-    private void renderTitleBar(GuiGraphics g, UITheme.ColorPalette c) {
+    private void renderTitleBar(GuiGraphicsExtractor g, UITheme.ColorPalette c) {
         UITheme.fillRoundedRect(g, x, y, width, TITLE_BAR_HEIGHT / 2, CORNER_RADIUS,
                 UITheme.brighten(c.headerBg(), 0.03f));
         UITheme.fillRoundedRect(g, x, y + TITLE_BAR_HEIGHT / 2 - 2, width, TITLE_BAR_HEIGHT / 2 + 2,
@@ -138,23 +138,22 @@ public class MCPanel {
         int textY = y + (TITLE_BAR_HEIGHT - mc.font.lineHeight) / 2 + 1;
 
         if (collapsible) {
-            String ind = expandProgress > 0.5f ? "\u25BC" : "\u25B6";
+            String ind = expandProgress > 0.5f ? "▼" : "▶";
             int indColor = UITheme.lerpColor(c.textMuted(), c.accentLight(), titleHoverAnim);
-            g.drawString(mc.font, ind, x + INNER_PADDING + 1, textY + 1, UITheme.withAlpha(0xFF000000, 0x40), false);
-            g.drawString(mc.font, ind, x + INNER_PADDING, textY, indColor, true);
+            g.text(mc.font, ind, x + INNER_PADDING + 1, textY + 1, UITheme.withAlpha(0xFF000000, 0x40), false);
+            g.text(mc.font, ind, x + INNER_PADDING, textY, indColor, true);
         }
 
         int titleX = x + INNER_PADDING + (collapsible ? 18 : 0);
         int displayColor = collapsible
                 ? UITheme.lerpColor(titleColor, c.accentLight(), titleHoverAnim * 0.4f)
                 : titleColor;
-        g.drawString(mc.font, title, titleX + 1, textY + 1, UITheme.withAlpha(0xFF000000, 0x50), false);
-        g.drawString(mc.font, title, titleX, textY, displayColor, true);
+        g.text(mc.font, title, titleX + 1, textY + 1, UITheme.withAlpha(0xFF000000, 0x50), false);
+        g.text(mc.font, title, titleX, textY, displayColor, true);
     }
 
     @FunctionalInterface
     public interface RenderEntry {
-        void render(GuiGraphics graphics, int x, int y, int width, int height);
+        void render(GuiGraphicsExtractor graphics, int x, int y, int width, int height);
     }
 }
-

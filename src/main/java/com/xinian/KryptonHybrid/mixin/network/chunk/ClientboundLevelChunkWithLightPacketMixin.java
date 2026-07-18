@@ -1,6 +1,8 @@
 package com.xinian.KryptonHybrid.mixin.network.chunk;
 
 import com.google.common.collect.Lists;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import net.minecraft.nbt.CompoundTag;
@@ -10,11 +12,11 @@ import net.minecraft.network.VarInt;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
 import net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData;
+import net.minecraft.world.level.levelgen.Heightmap;
 import com.xinian.KryptonHybrid.shared.network.chunk.ChunkDataCodec;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
 
 import java.util.Arrays;
 import java.util.BitSet;
@@ -47,14 +49,14 @@ public abstract class ClientboundLevelChunkWithLightPacketMixin {
      * Decodes Krypton's optimized chunk-data format when the marker is present;
      * otherwise falls back to the vanilla constructor unmodified.
      */
-    @Redirect(
+    @WrapOperation(
             method = "<init>(Lnet/minecraft/network/RegistryFriendlyByteBuf;)V",
             at = @At(
                     value = "NEW",
                     target = "net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData"
             )
     )
-    private ClientboundLevelChunkPacketData readChunkData$krypton(RegistryFriendlyByteBuf buf, int x, int z) {
+    private ClientboundLevelChunkPacketData readChunkData$krypton(RegistryFriendlyByteBuf buf, int x, int z, Operation<ClientboundLevelChunkPacketData> original) {
         if (buf.getUnsignedByte(buf.readerIndex()) != KRYPTON_MARKER) {
             return new ClientboundLevelChunkPacketData(buf, x, z);
         }
@@ -96,9 +98,18 @@ public abstract class ClientboundLevelChunkWithLightPacketMixin {
 
         // --- Build a vanilla-format RegistryFriendlyByteBuf ---
         RegistryFriendlyByteBuf vanillaBuf = new RegistryFriendlyByteBuf(
-                Unpooled.buffer(), buf.registryAccess(), buf.getConnectionType());
+                Unpooled.buffer(), buf.registryAccess());
         try {
-            vanillaBuf.writeNbt(heightmaps);
+            // Heightmaps in 26.2 format: Map<Heightmap.Types, long[]> via
+            // HEIGHTMAPS_STREAM_CODEC = map(EnumMap::new, Types.STREAM_CODEC, LONG_ARRAY)
+            // Each entry: VarInt(typeId) + VarInt(arrayLen) + arrayLen × 8 bytes
+            vanillaBuf.writeVarInt(heightmaps.size());
+            for (String key : heightmaps.keySet()) {
+                Heightmap.Types type = Heightmap.Types.valueOf(key);
+                vanillaBuf.writeVarInt(type.ordinal());
+                long[] data = heightmaps.getLongArray(key).orElseGet(() -> new long[0]);
+                FriendlyByteBuf.writeLongArray(vanillaBuf, data);
+            }
             vanillaBuf.writeVarInt(vanillaBuffer.length);
             vanillaBuf.writeBytes(vanillaBuffer);
             ClientboundLevelChunkPacketData.BlockEntityInfo.LIST_STREAM_CODEC.encode(vanillaBuf, blockEntities);
@@ -117,14 +128,14 @@ public abstract class ClientboundLevelChunkWithLightPacketMixin {
      * Decodes Krypton's compressed format when the marker is present; otherwise falls
      * back to the vanilla constructor unmodified.
      */
-    @Redirect(
+    @WrapOperation(
             method = "<init>(Lnet/minecraft/network/RegistryFriendlyByteBuf;)V",
             at = @At(
                     value = "NEW",
                     target = "net/minecraft/network/protocol/game/ClientboundLightUpdatePacketData"
             )
     )
-    private ClientboundLightUpdatePacketData readLightData$krypton(FriendlyByteBuf buf, int x, int z) {
+    private ClientboundLightUpdatePacketData readLightData$krypton(FriendlyByteBuf buf, int x, int z, Operation<ClientboundLightUpdatePacketData> original) {
         if (buf.getUnsignedByte(buf.readerIndex()) != KRYPTON_MARKER) {
             return new ClientboundLightUpdatePacketData(buf, x, z);
         }

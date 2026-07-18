@@ -90,8 +90,8 @@ public final class BlockEntityDeltaCache {
         CompoundTag delta = new CompoundTag();
         delta.putBoolean(DELTA_MARKER_KEY, true);
 
-        Set<String> newKeys = newTag.getAllKeys();
-        Set<String> oldKeys = lastSent.getAllKeys();
+        Set<String> newKeys = newTag.keySet();
+        Set<String> oldKeys = lastSent.keySet();
 
         // Find changed/added keys
         int changedCount = 0;

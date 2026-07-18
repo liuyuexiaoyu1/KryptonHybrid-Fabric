@@ -68,11 +68,11 @@ public final class ChunkDataCodec {
      * @param heightmaps the vanilla {@link CompoundTag} containing heightmap entries
      */
     public static void writeHeightmaps(FriendlyByteBuf buf, CompoundTag heightmaps) {
-        Set<String> keys = heightmaps.getAllKeys();
+        Set<String> keys = heightmaps.keySet();
         buf.writeVarInt(keys.size());
         for (String key : keys) {
             buf.writeUtf(key);
-            long[] data = heightmaps.getLongArray(key);
+            long[] data = heightmaps.getLongArray(key).orElseGet(() -> new long[0]);
             buf.writeVarInt(data.length);
             // XOR-delta + ZigZag VarLong: correlated heightmaps usually produce
             // small deltas, so avoid paying a fixed 8 bytes per long.
@@ -126,18 +126,25 @@ public final class ChunkDataCodec {
      * {@link net.minecraft.world.level.chunk.PalettedContainer}, returning the
      * number of bytes consumed.
      *
+     * <p>In 26.2 the storage is written with {@code writeFixedSizeLongArray}
+     * which does NOT emit a leading VarInt size — the number of longs is
+     * derived from the bits-per-entry and the section size (4096 for blocks,
+     * 64 for biomes).</p>
+     *
      * @param buf             the buffer positioned at the start of a PalettedContainer
      * @param globalThreshold bits-per-entry above which the global palette is used
      *                        (8 for block states, 3 for biomes)
+     * @param sectionElements number of elements in the section (4096 for blocks, 64 for biomes)
      * @return bytes consumed
      */
-    public static int skipPalettedContainer(ByteBuf buf, int globalThreshold) {
+    public static int skipPalettedContainer(ByteBuf buf, int globalThreshold, int sectionElements) {
         int start = buf.readerIndex();
         int bpe = buf.readUnsignedByte();
 
         if (bpe == 0) {
-            // SingleValuePalette: one VarInt (the palette entry)
+            // SingleValuePalette: one VarInt (the palette entry), no storage data.
             VarInt.read(buf);
+            return buf.readerIndex() - start;
         } else if (bpe <= globalThreshold) {
             // LinearPalette or HashMapPalette: VarInt(size) + size × VarInt(entry)
             int paletteSize = VarInt.read(buf);
@@ -147,11 +154,20 @@ public final class ChunkDataCodec {
         }
         // else: GlobalPalette — no palette data
 
-        // Storage: VarInt(longCount) + longCount × 8 bytes
-        int longCount = VarInt.read(buf);
+        // Storage: written with writeFixedSizeLongArray — NO leading VarInt size.
+        // The number of longs is derived from bits-per-entry and section element count,
+        // matching SimpleBitStorage: valuesPerLong = 64 / bpe (integer division),
+        // longCount = (sectionElements + valuesPerLong - 1) / valuesPerLong.
+        int valuesPerLong = 64 / bpe;
+        int longCount = (sectionElements + valuesPerLong - 1) / valuesPerLong;
         buf.skipBytes(longCount * 8);
 
         return buf.readerIndex() - start;
+    }
+
+    /** Overload that delegates to the three-arg version (default 4096 elements). */
+    public static int skipPalettedContainer(ByteBuf buf, int globalThreshold) {
+        return skipPalettedContainer(buf, globalThreshold, 4096);
     }
 
     // ======================================================================
@@ -173,9 +189,10 @@ public final class ChunkDataCodec {
         ByteBuf src = Unpooled.wrappedBuffer(vanillaBuffer);
         try {
             for (int s = 0; s < sectionCount; s++) {
-                // ---- Block data: short + PalettedContainer<BlockState> ----
+                // ---- Block data: short(nonEmptyBlockCount) + short(fluidCount) ──
+                //                    + PalettedContainer<BlockState> ----
                 int blockStart = src.readerIndex();
-                src.skipBytes(2); // nonEmptyBlockCount (short)
+                src.skipBytes(4); // nonEmptyBlockCount + fluidCount (both short in 26.2)
                 skipPalettedContainer(src, STATES_GLOBAL_THRESHOLD);
                 int blockSize = src.readerIndex() - blockStart;
                 // Copy block data to blocksOut
@@ -186,15 +203,14 @@ public final class ChunkDataCodec {
                 int biomeBpe = src.getUnsignedByte(biomeStart); // peek
 
                 if (biomeBpe == 0) {
-                    // Single-value biome: byte(0) + VarInt(biomeId) + VarInt(0)
+                    // Single-value biome: byte(0) + VarInt(biomeId) (no storage in 26.2)
                     src.readByte(); // skip bpe=0
                     int biomeId = VarInt.read(src);
-                    VarInt.read(src); // skip storage length (always 0)
                     biomesOut.writeByte(BIOME_SINGLE_VALUE);
                     biomesOut.writeVarInt(biomeId);
                 } else {
                     // Multi-value biome: copy raw PalettedContainer bytes
-                    skipPalettedContainer(src, BIOME_GLOBAL_THRESHOLD);
+                    skipPalettedContainer(src, BIOME_GLOBAL_THRESHOLD, 64);
                     int biomeSize = src.readerIndex() - biomeStart;
                     src.readerIndex(biomeStart); // reset to copy
                     biomesOut.writeByte(BIOME_RAW);
@@ -225,9 +241,9 @@ public final class ChunkDataCodec {
 
         try {
             for (int s = 0; s < sectionCount; s++) {
-                // ---- Block data ----
+                // ---- Block data: short(nonEmptyBlockCount) + short(fluidCount) + PalettedContainer<BlockState> ----
                 int blockStart = blocksSrc.readerIndex();
-                blocksSrc.skipBytes(2); // short
+                blocksSrc.skipBytes(4); // nonEmptyBlockCount + fluidCount (both short in 26.2)
                 skipPalettedContainer(blocksSrc, STATES_GLOBAL_THRESHOLD);
                 int blockSize = blocksSrc.readerIndex() - blockStart;
                 blocksSrc.readerIndex(blockStart);
@@ -237,11 +253,11 @@ public final class ChunkDataCodec {
                 byte biomeFlag = biomesSrc.readByte();
                 if (biomeFlag == BIOME_SINGLE_VALUE) {
                     int biomeId = VarInt.read(biomesSrc);
-                    // Reconstruct single-value PalettedContainer:
-                    // byte(0) + VarInt(biomeId) + VarInt(0)
+                    // Reconstruct single-value PalettedContainer (26.2 format):
+                    // byte(0) + VarInt(biomeId)  (no trailing storage — writeFixedSizeLongArray
+                    // with empty array writes nothing.)
                     out.writeByte(0);
                     out.writeVarInt(biomeId);
-                    out.writeVarInt(0);
                 } else {
                     // BIOME_RAW: VarInt(length) + raw bytes
                     int biomeLen = VarInt.read(biomesSrc);

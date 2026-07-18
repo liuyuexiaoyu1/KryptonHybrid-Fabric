@@ -1,5 +1,7 @@
 package com.xinian.KryptonHybrid.mixin.network.pipeline;
 
+import com.xinian.KryptonHybrid.shared.network.util.KryptonConnectionUtil;
+
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import com.xinian.KryptonHybrid.shared.network.control.PacketControlPhase;
 import com.xinian.KryptonHybrid.shared.network.control.PacketControlState;
@@ -45,7 +47,7 @@ public class HandshakeValidatorMixin {
 
         if (!result.valid()) {
             // Record anomaly
-            AnomalyDetector detector = AnomalyDetector.get(this.connection.channel());
+            AnomalyDetector detector = AnomalyDetector.get(KryptonConnectionUtil.channel(this.connection));
             detector.recordStrike(
                     AnomalyDetector.AnomalyType.PROTOCOL_VIOLATION,
                     "Invalid handshake: " + result.reason());
@@ -57,9 +59,9 @@ public class HandshakeValidatorMixin {
         }
 
         if (packet.intention() == ClientIntent.STATUS
-                && !StatusRequestGuard.allowStatusPing(this.connection.channel(), packet.hostName())) {
+                && !StatusRequestGuard.allowStatusPing(KryptonConnectionUtil.channel(this.connection), packet.hostName())) {
             if (KryptonConfig.securityStatusPingSilentDrop) {
-                this.connection.channel().close();
+                KryptonConnectionUtil.channel(this.connection).close();
             } else {
                 this.connection.disconnect(Component.translatable("disconnect.ignoring_status_request"));
             }
@@ -73,8 +75,8 @@ public class HandshakeValidatorMixin {
 
         // ── Advance timeout to LOGIN stage ────────────────────────────
         HandshakeTimeoutHandler.advanceStage(
-                this.connection.channel(), HandshakeTimeoutHandler.Stage.LOGIN);
-        PacketControlState.get(this.connection.channel()).setPhase(PacketControlPhase.LOGIN);
+                KryptonConnectionUtil.channel(this.connection), HandshakeTimeoutHandler.Stage.LOGIN);
+        PacketControlState.get(KryptonConnectionUtil.channel(this.connection)).setPhase(PacketControlPhase.LOGIN);
     }
 }
 

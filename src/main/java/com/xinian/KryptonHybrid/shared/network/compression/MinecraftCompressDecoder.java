@@ -36,22 +36,32 @@ public class MinecraftCompressDecoder extends MessageToMessageDecoder<ByteBuf> {
 
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
+        // Snapshot the reader index before reading the VarInt so we can rewind
+        // if the data is already decompressed (no Zlib header).
+        int startReaderIndex = in.readerIndex();
+
         FriendlyByteBuf bb = new FriendlyByteBuf(in);
         int claimedUncompressedSize = bb.readVarInt();
+
+        // claimedUncompressedSize == 0 → uncompressed pass-through.
         if (claimedUncompressedSize == 0) {
-            // Vanilla MC's CompressionDecoder does NOT validate the uncompressed
-            // pass-through branch against the threshold; only the compressed branch
-            // is validated.  We mirror that to avoid spurious disconnects when the
-            // peer encoded a packet just under its (possibly higher) threshold while
-            // we have a lower local threshold (race during setupCompression update,
-            // BroadcastCompressedCache replay, etc.).  The hard cap below is the
-            // real safety net.
-            int actualUncompressedSize = in.readableBytes();
-            checkState(actualUncompressedSize <= UNCOMPRESSED_CAP,
+            checkState(in.readableBytes() <= UNCOMPRESSED_CAP,
                     "Uncompressed pass-through size %s exceeds hard cap of %s",
-                    actualUncompressedSize, UNCOMPRESSED_CAP);
+                    in.readableBytes(), UNCOMPRESSED_CAP);
             out.add(in.retain());
             return;
+        }
+
+        // The data after the VarInt should start with a valid Zlib header (0x78).
+        // If not, the data was already decompressed by another pipeline handler
+        // (e.g. ViaFabricPlus).  Rewind and pass through unchanged.
+        if (in.readableBytes() >= 2) {
+            int b1 = in.getByte(in.readerIndex()) & 0xFF;
+            if (b1 != 0x78) {
+                in.readerIndex(startReaderIndex); // rewind
+                out.add(in.retain());
+                return;
+            }
         }
 
         if (validate) {

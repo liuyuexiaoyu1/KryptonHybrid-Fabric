@@ -89,15 +89,15 @@ public final class PacketCoalescer {
             Packet<?> pkt = packets.get(i);
 
             if (pkt instanceof ClientboundSetEntityMotionPacket motion) {
-                if (!seenMotion.add(motion.getId())) {
+                if (!seenMotion.add(motion.id())) {
                     packets.remove(i);
                 }
             } else if (pkt instanceof ClientboundTeleportEntityPacket teleport) {
-                if (!seenTeleport.add(teleport.getId())) {
+                if (!seenTeleport.add(teleport.id())) {
                     packets.remove(i);
                 } else {
                     if (teleportedEntities == null) teleportedEntities = new IntOpenHashSet();
-                    teleportedEntities.add(teleport.getId());
+                    teleportedEntities.add(teleport.id());
                 }
             } else if (pkt instanceof ClientboundSetEntityDataPacket data) {
                 // Merge multiple metadata updates for the same entity into a single

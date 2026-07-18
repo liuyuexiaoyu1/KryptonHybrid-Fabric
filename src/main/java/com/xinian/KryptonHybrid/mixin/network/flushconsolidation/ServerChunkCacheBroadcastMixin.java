@@ -56,7 +56,7 @@ public class ServerChunkCacheBroadcastMixin {
      * auto-flush and open a bundle collection window.
      */
     @Inject(
-            method = "tickChunks",
+            method = "broadcastChangedChunks",
             at = @At(
                     value = "CONSTANT",
                     args = "stringValue=broadcast",

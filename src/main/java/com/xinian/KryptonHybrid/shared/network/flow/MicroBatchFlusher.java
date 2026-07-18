@@ -1,5 +1,7 @@
 package com.xinian.KryptonHybrid.shared.network.flow;
 
+import com.xinian.KryptonHybrid.shared.network.util.KryptonConnectionUtil;
+
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoop;
@@ -48,12 +50,12 @@ public final class MicroBatchFlusher {
     public static void scheduleFlush(ServerPlayer player) {
         if (player == null) return;
         if (player.getClass() != ServerPlayer.class) return;
-        scheduleFlush(player.connection.getConnection());
+        scheduleFlush(KryptonConnectionUtil.connection(player.connection));
     }
 
     public static void scheduleFlush(Connection connection) {
         if (connection == null) return;
-        Channel ch = connection.channel();
+        Channel ch = KryptonConnectionUtil.channel(connection);
         if (ch == null || !ch.isActive()) return;
         EventLoop loop = ch.eventLoop();
         if (loop == null) return;

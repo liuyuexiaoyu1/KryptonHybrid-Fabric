@@ -1,5 +1,7 @@
 package com.xinian.KryptonHybrid.mixin.network.blockentity;
 
+import com.xinian.KryptonHybrid.shared.network.util.KryptonConnectionUtil;
+
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import com.xinian.KryptonHybrid.shared.network.blockentity.BlockEntityDeltaCache;
 import com.xinian.KryptonHybrid.shared.network.blockentity.BlockEntityDeltaHolder;
@@ -85,7 +87,7 @@ public class ChunkHolderBlockEntityMixin {
         long packedPos = pos.asLong();
 
         for (ServerPlayer player : players) {
-            if (!KryptonWireFormat.canWriteBlockEntityDelta(player.connection.getConnection())) {
+            if (!KryptonWireFormat.canWriteBlockEntityDelta(KryptonConnectionUtil.connection(player.connection))) {
                 player.connection.send(fullPacket);
                 continue;
             }

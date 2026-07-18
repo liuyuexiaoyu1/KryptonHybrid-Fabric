@@ -1,12 +1,13 @@
 package com.xinian.KryptonHybrid.client.screen;
 
 import com.xinian.KryptonHybrid.client.KryptonStatsClientController;
+import net.minecraft.client.input.MouseButtonEvent;
 import com.xinian.KryptonHybrid.client.ui.MCButton;
 import com.xinian.KryptonHybrid.client.ui.MCPanel;
 import com.xinian.KryptonHybrid.client.ui.UITheme;
 import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
@@ -78,7 +79,7 @@ public final class KryptonStatsScreen extends Screen {
 
         addRenderableWidget(new MCButton(this.width - themeW - settingsW - topGap - 8, 8, settingsW, topBtnH,
                 Component.translatable("gui.krypton_hybrid.button.settings"),
-                b -> this.minecraft.setScreen(new KryptonStatsSettingsScreen(this))));
+                b -> this.minecraft.gui.setScreen(new KryptonStatsSettingsScreen(this))));
 
         // ─── Tab strip — adaptive width based on longest label ───
         Tab[] tabs = Tab.values();
@@ -135,10 +136,8 @@ public final class KryptonStatsScreen extends Screen {
 
     private void rebuildPanels() {
         activePanels.clear();
-        // Header consumes y∈[0..32], tab strip starts at y=36 with height ≈ font+8.
         int tabBottom = 36 + Math.max(18, this.font.lineHeight + 8);
         int contentTop = tabBottom + 10;
-        // Footer reserves the action button row (height ≈ font+10) + hint line + padding.
         int footerReserve = Math.max(20, this.font.lineHeight + 10) + lineH() + 14;
         int contentBottom = this.height - footerReserve;
         int left = 14;
@@ -369,7 +368,7 @@ public final class KryptonStatsScreen extends Screen {
         activePanels.add(client);
     }
 
-    private void drawHotspotEntries(GuiGraphics g, int x, int y, int w, int h) {
+    private void drawHotspotEntries(GuiGraphicsExtractor g, int x, int y, int w, int h) {
         int ly = drawMetric(g, x, y, w, "gui.krypton_hybrid.label.tracked_types",
                 String.format("%,d", snap.trackedTypeCount()));
         ly = drawMetric(g, x, ly, w, "gui.krypton_hybrid.label.tracked_mods",
@@ -397,7 +396,7 @@ public final class KryptonStatsScreen extends Screen {
                         String.format("%,d pkt", snap.hottestModPackets()));
     }
 
-    private void drawSecurityEntries(GuiGraphics g, int x, int y, int w, int h) {
+    private void drawSecurityEntries(GuiGraphicsExtractor g, int x, int y, int w, int h) {
         var c = UITheme.colors();
         int statusColor = snap.securityEnabled() ? c.successColor() : c.dangerColor();
         int ly = drawMetricWithTooltip(g, x, y, w,
@@ -451,7 +450,7 @@ public final class KryptonStatsScreen extends Screen {
                 ));
     }
 
-    private void drawClientEntries(GuiGraphics g, int x, int y, int w, int h) {
+    private void drawClientEntries(GuiGraphicsExtractor g, int x, int y, int w, int h) {
         long age = KryptonStatsClientController.latestSnapshotAgeMs();
         long req = KryptonStatsClientController.snapshotRequestCount();
         long recv = KryptonStatsClientController.snapshotReceiveCount();
@@ -508,7 +507,7 @@ public final class KryptonStatsScreen extends Screen {
                 ));
     }
 
-    private int drawMetricWithTooltip(GuiGraphics g,
+    private int drawMetricWithTooltip(GuiGraphicsExtractor g,
                                       int x,
                                       int y,
                                       int width,
@@ -525,7 +524,6 @@ public final class KryptonStatsScreen extends Screen {
 
     // ─── Mods table renderer ───
 
-    /** Returns [x0, x1, x2, x3, y, h] — three sort-chip ranges and shared y/h. */
     private int[] sortChipBounds(int x, int y, int w) {
         int h = Math.max(16, this.font.lineHeight + 6);
         int gap = 6;
@@ -533,22 +531,20 @@ public final class KryptonStatsScreen extends Screen {
         int x0 = x;
         int x1 = x + third + gap;
         int x2 = x + (third + gap) * 2;
-        int x3 = x + w; // right edge of 3rd chip
+        int x3 = x + w;
         return new int[]{x0, x1, x2, x3, y, h};
     }
 
-    private void drawModsContent(GuiGraphics g, int x, int y, int w, int h) {
+    private void drawModsContent(GuiGraphicsExtractor g, int x, int y, int w, int h) {
         var c = UITheme.colors();
         long totalPacketsAll = Math.max(1L, snap.totalTrackedModPackets());
 
-        // Sort chips
         int[] sb = sortChipBounds(x, y, w);
         int chipH = sb[5];
         drawSortChip(g, sb[0], sb[4], sb[1] - sb[0] - 6, chipH, modSort == ModSort.BYTES,   "gui.krypton_hybrid.sort.bytes");
         drawSortChip(g, sb[1], sb[4], sb[2] - sb[1] - 6, chipH, modSort == ModSort.PACKETS, "gui.krypton_hybrid.sort.packets");
         drawSortChip(g, sb[2], sb[4], sb[3] - sb[2],     chipH, modSort == ModSort.NAME,    "gui.krypton_hybrid.sort.name");
 
-        // Totals line
         int headerY = y + chipH + 6;
         long totalBytes = Math.max(1L, snap.totalTrackedModBytes());
         long totalPackets = snap.totalTrackedModPackets();
@@ -556,9 +552,8 @@ public final class KryptonStatsScreen extends Screen {
                 snap.trackedModCount(),
                 String.format("%,d", totalPackets),
                 NetworkTrafficStats.formatBytes(snap.totalTrackedModBytes())).getString();
-        g.drawString(this.font, totals, x, headerY, c.textSecondary(), false);
+        g.text(this.font, totals, x, headerY, c.textSecondary(), false);
 
-        // List area
         int listTop = headerY + lineH() + 2;
         int listBottom = y + h;
         int listH = listBottom - listTop;
@@ -577,12 +572,11 @@ public final class KryptonStatsScreen extends Screen {
 
         int rowsToDraw = Math.min(visibleRows, totalRows - modScroll);
         if (totalRows == 0) {
-            g.drawString(this.font, Component.translatable("gui.krypton_hybrid.mods.empty").getString(),
+            g.text(this.font, Component.translatable("gui.krypton_hybrid.mods.empty").getString(),
                     x, listTop + 4, c.textMuted(), false);
             return;
         }
 
-        // Reserve scrollbar gutter when needed
         boolean hasScrollbar = totalRows > visibleRows;
         int rowW = w - (hasScrollbar ? 8 : 0);
 
@@ -592,13 +586,11 @@ public final class KryptonStatsScreen extends Screen {
             StatsSnapshotPayload.ModEntry e = data.get(idx);
             int ry = listTop + i * rowH;
 
-            // Alternating row background
             if ((idx & 1) == 0) {
                 UITheme.fillRoundedRect(g, x, ry, rowW, rowH - 2, 3,
                         UITheme.withAlpha(c.widgetBg(), 0x60));
             }
 
-            // Right-side metric (bytes + percent + packets)
             double frac = e.bytes() / (double) totalBytes;
             String right = String.format("%s · %.1f%% · %,d",
                     NetworkTrafficStats.formatBytes(e.bytes()),
@@ -606,13 +598,11 @@ public final class KryptonStatsScreen extends Screen {
                     e.packets());
             int rightW = this.font.width(right);
 
-            // Left-side mod id (truncated to fit)
             int idMaxW = rowW - rightW - 16;
             String id = truncate(e.modId(), Math.max(40, idMaxW));
-            g.drawString(this.font, id, x + 4, ry + 2, c.textPrimary(), false);
-            g.drawString(this.font, right, x + rowW - rightW - 4, ry + 2, c.textSecondary(), false);
+            g.text(this.font, id, x + 4, ry + 2, c.textPrimary(), false);
+            g.text(this.font, right, x + rowW - rightW - 4, ry + 2, c.textSecondary(), false);
 
-            // Proportional traffic bar at the bottom of the row
             int barMax = rowW - 8;
             int barFill = Math.max(1, (int) (barMax * frac));
             int barColor = UITheme.lerpColor(c.accent(), c.accentSecondary(), Math.min(1f, (float) frac * 2f));
@@ -626,7 +616,6 @@ public final class KryptonStatsScreen extends Screen {
         }
         g.disableScissor();
 
-        // Scrollbar
         if (hasScrollbar) {
             int trackX = x + w - 4;
             UITheme.fillRoundedRect(g, trackX, listTop, 3, listH, 1, c.scrollbarTrack());
@@ -636,7 +625,7 @@ public final class KryptonStatsScreen extends Screen {
         }
     }
 
-    private void drawSortChip(GuiGraphics g, int x, int y, int w, int h, boolean active, String key) {
+    private void drawSortChip(GuiGraphicsExtractor g, int x, int y, int w, int h, boolean active, String key) {
         var c = UITheme.colors();
         int bg = active ? UITheme.withAlpha(c.accent(), 0x40) : UITheme.withAlpha(c.widgetBg(), 0xA0);
         int border = active ? c.accent() : UITheme.withAlpha(c.widgetBorder(), 0xA0);
@@ -647,8 +636,7 @@ public final class KryptonStatsScreen extends Screen {
         int tw = Math.min(this.font.width(label), w - 8);
         String safe = truncate(label, w - 8);
         int sw = this.font.width(safe);
-        g.drawString(this.font, safe, x + (w - sw) / 2, y + (h - this.font.lineHeight) / 2 + 1, textColor, false);
-        // Suppress unused-warning compilation noise
+        g.text(this.font, safe, x + (w - sw) / 2, y + (h - this.font.lineHeight) / 2 + 1, textColor, false);
         if (tw < 0) tw = 0;
 
         if (lastMouseX >= x && lastMouseX <= x + w && lastMouseY >= y && lastMouseY <= y + h) {
@@ -702,19 +690,18 @@ public final class KryptonStatsScreen extends Screen {
     // ─── Render ───
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         this.lastMouseX = mouseX;
         this.lastMouseY = mouseY;
         this.summaryTooltip = null;
 
         var c = UITheme.colors();
-        renderBackground(g, mouseX, mouseY, partialTick);
         g.fill(0, 0, this.width, this.height, c.panelBg());
 
         // Header: title + subtitle stacked, aligned to font line height
         int lh = this.font.lineHeight;
-        g.drawString(this.font, this.title, 14, 8, c.textPrimary(), true);
-        g.drawString(this.font,
+        g.text(this.font, this.title, 14, 8, c.textPrimary(), true);
+        g.text(this.font,
                 Component.translatable("gui.krypton_hybrid.subtitle").getString(),
                 14, 8 + lh + 2, c.textSecondary(), false);
 
@@ -740,14 +727,17 @@ public final class KryptonStatsScreen extends Screen {
                 "gui.krypton_hybrid.footer_hint",
                 KryptonStatsClientController.openStatsKey().getTranslatedKeyMessage());
         String hintText = truncate(hint.getString(), this.width - 24);
-        g.drawCenteredString(this.font, hintText, this.width / 2, hintY, c.textMuted());
+        g.centeredText(this.font, hintText, this.width / 2, hintY, c.textMuted());
 
-        for (var renderable : this.renderables) renderable.render(g, mouseX, mouseY, partialTick);
+        // Render widgets (renderables) on top
+        for (var renderable : this.renderables) renderable.extractRenderState(g, mouseX, mouseY, partialTick);
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        // Sort chip click in Mods tab — uses the same geometry as the renderer.
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        // Sort chip click in Mods tab
         if (currentTab == Tab.MODS && !activePanels.isEmpty()) {
             MCPanel panel = activePanels.get(0);
             int cx = panel.getX() + 12;
@@ -763,7 +753,7 @@ public final class KryptonStatsScreen extends Screen {
         for (MCPanel p : activePanels) {
             if (p.handleClick(mouseX, mouseY)) return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
@@ -780,7 +770,7 @@ public final class KryptonStatsScreen extends Screen {
 
     // ─── Drawing helpers ───
 
-    private void drawChipStrip(GuiGraphics g, int x, int y, int w, long ageMs, double bundleHit) {
+    private void drawChipStrip(GuiGraphicsExtractor g, int x, int y, int w, long ageMs, double bundleHit) {
         var c = UITheme.colors();
         String[][] chips = {
                 {translate("gui.krypton_hybrid.label.algorithm"), snap.compressionAlgorithm()},
@@ -809,15 +799,14 @@ public final class KryptonStatsScreen extends Screen {
             UITheme.drawRoundedBorder(g, cx, cy, chipW, chipH, 4, UITheme.withAlpha(c.widgetBorder(), 0xC0));
             UITheme.fillRoundedRect(g, cx, cy, 3, chipH, 1, colors[i]);
 
-            // Two-line centered layout: title + value for better visual alignment.
             String chipLabel = truncate(chips[i][0], chipW - 10);
             int labelW = this.font.width(chipLabel);
             int labelX = cx + Math.max(6, (chipW - labelW) / 2);
-            g.drawString(this.font, chipLabel, labelX, cy + 3, c.textMuted(), false);
+            g.text(this.font, chipLabel, labelX, cy + 3, c.textMuted(), false);
             String val = truncate(chips[i][1], chipW - 14);
             int vw = this.font.width(val);
             int valX = cx + Math.max(6, (chipW - vw) / 2);
-            g.drawString(this.font, val, valX, cy + chipH - this.font.lineHeight - 3, colors[i], false);
+            g.text(this.font, val, valX, cy + chipH - this.font.lineHeight - 3, colors[i], false);
 
             if (lastMouseX >= cx && lastMouseX <= cx + chipW && lastMouseY >= cy && lastMouseY <= cy + chipH) {
                 summaryTooltip = summaryTooltipForIndex(i, ageMs, bundleHit);
@@ -864,7 +853,7 @@ public final class KryptonStatsScreen extends Screen {
         return lines;
     }
 
-    private void renderModernTooltip(GuiGraphics g, List<Component> lines, int x, int y) {
+    private void renderModernTooltip(GuiGraphicsExtractor g, List<Component> lines, int x, int y) {
         int maxW = 0;
         for (Component line : lines) maxW = Math.max(maxW, this.font.width(line));
         int pad = 6;
@@ -879,12 +868,12 @@ public final class KryptonStatsScreen extends Screen {
         int cy = ty + pad;
         for (int i = 0; i < lines.size(); i++) {
             int color = (i == 0) ? c.accentLight() : (i == lines.size() - 1 ? c.textPrimary() : c.textSecondary());
-            g.drawString(this.font, lines.get(i), tx + pad, cy, color, false);
+            g.text(this.font, lines.get(i), tx + pad, cy, color, false);
             cy += this.font.lineHeight + 1;
         }
     }
 
-    private int drawSavingBar(GuiGraphics g, int x, int y, int w, double percent) {
+    private int drawSavingBar(GuiGraphicsExtractor g, int x, int y, int w, double percent) {
         var c = UITheme.colors();
         int barH = 10;
         UITheme.fillRoundedRect(g, x, y, w, barH, 3, c.widgetBg());
@@ -899,38 +888,36 @@ public final class KryptonStatsScreen extends Screen {
         String label = Component.translatable("gui.krypton_hybrid.label.bar_saved",
                 String.format("%.2f%%", percent)).getString();
         int lw = this.font.width(label);
-        g.drawString(this.font, label, x + w - lw, y + barH + 2, c.textSecondary(), false);
+        g.text(this.font, label, x + w - lw, y + barH + 2, c.textSecondary(), false);
         return y + barH + lineH() + 2;
     }
 
-    private int drawMetric(GuiGraphics g, int x, int y, int width, String labelKey, String value) {
+    private int drawMetric(GuiGraphicsExtractor g, int x, int y, int width, String labelKey, String value) {
         return drawMetric(g, x, y, width, labelKey, value, UITheme.colors().textPrimary());
     }
 
-    private int drawMetric(GuiGraphics g, int x, int y, int width, String labelKey, String value, int valueColor) {
+    private int drawMetric(GuiGraphicsExtractor g, int x, int y, int width, String labelKey, String value, int valueColor) {
         var c = UITheme.colors();
         String label = Component.translatable(labelKey).getString();
         int labelW = this.font.width(label);
         int valueW = this.font.width(value);
         int gap = 8;
-        // If label + value collide, wrap value to a second line right-aligned.
         if (labelW + gap + valueW > width) {
-            g.drawString(this.font, truncate(label, width), x, y, c.textSecondary(), false);
+            g.text(this.font, truncate(label, width), x, y, c.textSecondary(), false);
             String safe = truncate(value, width - 2);
             int sw = this.font.width(safe);
-            g.drawString(this.font, safe, x + width - sw, y + lineH(), valueColor, false);
+            g.text(this.font, safe, x + width - sw, y + lineH(), valueColor, false);
             return y + lineH() * 2;
         }
-        g.drawString(this.font, label, x, y, c.textSecondary(), false);
+        g.text(this.font, label, x, y, c.textSecondary(), false);
         String safe = truncate(value, Math.max(40, width - labelW - gap));
         int sw = this.font.width(safe);
-        g.drawString(this.font, safe, x + width - sw, y, valueColor, false);
+        g.text(this.font, safe, x + width - sw, y, valueColor, false);
         return y + lineH();
     }
 
     // ─── Utility ───
 
-    /** Approximate panel header height (matches MCPanel TITLE_BAR_HEIGHT + padding). */
     private static int MCPanelHeader() { return 24 + 12; }
 
     private static String translate(String key) { return Component.translatable(key).getString(); }
@@ -981,7 +968,6 @@ public final class KryptonStatsScreen extends Screen {
     }
 
     private static int ratioColor(double ratio) {
-        // Lower ratio is better (wire/orig).
         return inverseQualityColor(ratio, 0.75, 0.90);
     }
 
@@ -1004,5 +990,9 @@ public final class KryptonStatsScreen extends Screen {
         while (end > 1 && this.font.width(text.substring(0, end) + ell) > maxWidth) end--;
         return text.substring(0, Math.max(1, end)) + ell;
     }
-}
 
+    @Override
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+        // Custom background is handled in extractRenderState
+    }
+}

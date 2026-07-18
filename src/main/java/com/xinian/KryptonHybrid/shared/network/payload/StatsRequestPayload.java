@@ -3,7 +3,7 @@ package com.xinian.KryptonHybrid.shared.network.payload;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 /**
  * Client → server request asking the server to push a fresh
@@ -20,7 +20,7 @@ public record StatsRequestPayload(byte revision) implements CustomPacketPayload 
     public static final StatsRequestPayload INSTANCE = new StatsRequestPayload(CURRENT_REVISION);
 
     public static final Type<StatsRequestPayload> TYPE = new Type<>(
-            ResourceLocation.fromNamespaceAndPath("krypton_hybrid", "stats_request"));
+            Identifier.fromNamespaceAndPath("krypton_hybrid", "stats_request"));
 
     public static final StreamCodec<FriendlyByteBuf, StatsRequestPayload> STREAM_CODEC =
             StreamCodec.of(

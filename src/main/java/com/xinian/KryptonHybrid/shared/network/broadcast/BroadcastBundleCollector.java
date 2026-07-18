@@ -5,6 +5,7 @@ import com.xinian.KryptonHybrid.shared.network.motion.MotionDeltaCache;
 import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.BundlerInfo;
 import net.minecraft.network.protocol.game.ClientboundBundlePacket;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -135,11 +136,16 @@ public final class BroadcastBundleCollector {
             if (packets.size() == 1) {
                 player.connection.send(packets.get(0));
             } else {
-                emittedBundles++;
-                packetsInBundles += packets.size();
-                player.connection.send(new ClientboundBundlePacket(
-                        (Iterable<Packet<? super ClientGamePacketListener>>) (Iterable<?>) packets
-                ));
+                int limit = BundlerInfo.BUNDLE_SIZE_LIMIT;
+                for (int i = 0; i < packets.size(); i += limit) {
+                    int end = Math.min(i + limit, packets.size());
+                    List<Packet<?>> chunk = packets.subList(i, end);
+                    emittedBundles++;
+                    packetsInBundles += chunk.size();
+                    player.connection.send(new ClientboundBundlePacket(
+                            (Iterable<Packet<? super ClientGamePacketListener>>) (Iterable<?>) chunk
+                    ));
+                }
             }
         }
 

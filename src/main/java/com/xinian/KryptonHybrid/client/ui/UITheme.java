@@ -1,6 +1,6 @@
 package com.xinian.KryptonHybrid.client.ui;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /**
  * Modern web-style theme system ported from MemoryCatcher.
@@ -39,7 +39,7 @@ public final class UITheme {
     public static ColorPalette colors() { return currentMode == Mode.DARK ? DARK : LIGHT; }
 
     // ─── Rounded rect ───
-    public static void fillRoundedRect(GuiGraphics g, int x, int y, int w, int h, int radius, int color) {
+    public static void fillRoundedRect(GuiGraphicsExtractor g, int x, int y, int w, int h, int radius, int color) {
         if (radius <= 0 || w < radius * 2 || h < radius * 2) {
             g.fill(x, y, x + w, y + h, color);
             return;
@@ -53,7 +53,7 @@ public final class UITheme {
         fillRoundedCorner(g, x + w - radius, y + h - radius, radius, color, false, false);
     }
 
-    private static void fillRoundedCorner(GuiGraphics g, int cx, int cy, int r, int color, boolean left, boolean top) {
+    private static void fillRoundedCorner(GuiGraphicsExtractor g, int cx, int cy, int r, int color, boolean left, boolean top) {
         if (r <= 2) { fillCorner(g, cx, cy, r, color, left, top); return; }
         for (int dy = 0; dy < r; dy++) {
             float distY = top ? (r - dy - 0.5f) : (dy + 0.5f);
@@ -63,7 +63,7 @@ public final class UITheme {
         }
     }
 
-    private static void fillCorner(GuiGraphics g, int cx, int cy, int r, int color, boolean left, boolean top) {
+    private static void fillCorner(GuiGraphicsExtractor g, int cx, int cy, int r, int color, boolean left, boolean top) {
         for (int dy = 0; dy < r; dy++) for (int dx = 0; dx < r; dx++) {
             float distX = left ? (r - dx - 0.5f) : (dx + 0.5f);
             float distY = top  ? (r - dy - 0.5f) : (dy + 0.5f);
@@ -72,7 +72,7 @@ public final class UITheme {
         }
     }
 
-    public static void drawRoundedBorder(GuiGraphics g, int x, int y, int w, int h, int radius, int color) {
+    public static void drawRoundedBorder(GuiGraphicsExtractor g, int x, int y, int w, int h, int radius, int color) {
         g.fill(x + radius, y, x + w - radius, y + 1, color);
         g.fill(x + radius, y + h - 1, x + w - radius, y + h, color);
         g.fill(x, y + radius, x + 1, y + h - radius, color);
@@ -85,7 +85,7 @@ public final class UITheme {
         }
     }
 
-    public static void fillGradient(GuiGraphics g, int x, int y, int w, int h, int colorTop, int colorBottom) {
+    public static void fillGradient(GuiGraphicsExtractor g, int x, int y, int w, int h, int colorTop, int colorBottom) {
         if (h <= 0 || w <= 0) return;
         int steps = Math.min(h, 16);
         int stepH = Math.max(h / steps, 1);
@@ -98,8 +98,8 @@ public final class UITheme {
         }
     }
 
-    public static void drawHLine(GuiGraphics g, int x, int y, int width, int color) {
-        g.fill(x, y, x + width, y + 1, color);
+    public static void drawHLine(GuiGraphicsExtractor g, int x, int y, int width, int color) {
+        g.horizontalLine(x, x + width, y, color);
     }
 
     // ─── Animation easing ───
@@ -108,7 +108,7 @@ public final class UITheme {
     public static float smoothDamp(float current, float target, float speed) { return current + (target - current) * Math.min(1.0f, speed); }
     private static float clamp01(float t) { return Math.max(0, Math.min(1, t)); }
 
-    public static void drawCardShadow(GuiGraphics g, int x, int y, int w, int h, int radius) {
+    public static void drawCardShadow(GuiGraphicsExtractor g, int x, int y, int w, int h, int radius) {
         var c = colors();
         for (int i = 4; i >= 1; i--) {
             int alpha = 8 - i * 2;
@@ -118,7 +118,7 @@ public final class UITheme {
     }
 
     /** MemoryCatcher-style tooltip background with rounded border and soft shadow. */
-    public static void renderTooltipBackground(GuiGraphics g, int x, int y, int w, int h) {
+    public static void renderTooltipBackground(GuiGraphicsExtractor g, int x, int y, int w, int h) {
         var c = colors();
         drawCardShadow(g, x - 2, y - 2, w + 4, h + 4, 6);
         fillRoundedRect(g, x, y, w, h, 6, withAlpha(c.headerBg(), 0xF5));
@@ -155,4 +155,3 @@ public final class UITheme {
             int accentSecondary, int accentTertiary, int successBg, int dangerBg, int glassBg, int divider
     ) {}
 }
-

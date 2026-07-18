@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -84,10 +84,7 @@ public abstract class ServerEntityDataThrottleMixin {
 
     @Shadow @Nullable private List<SynchedEntityData.DataValue<?>> trackedDataValues;
 
-    @Shadow
-    private void broadcastAndSend(Packet<?> packet) {
-        throw new AssertionError();
-    }
+    @Shadow @Final private ServerEntity.Synchronizer synchronizer;
 
     /**
      * Per-entity cache of the last broadcast value for each {@link SynchedEntityData}
@@ -137,7 +134,7 @@ public abstract class ServerEntityDataThrottleMixin {
             List<SynchedEntityData.DataValue<?>> filtered = krypton$filterUnchanged(dirtyList);
 
             if (!filtered.isEmpty()) {
-                this.broadcastAndSend(
+                this.synchronizer.sendToTrackingPlayersAndSelf(
                         new ClientboundSetEntityDataPacket(this.entity.getId(), filtered)
                 );
             }
@@ -147,7 +144,7 @@ public abstract class ServerEntityDataThrottleMixin {
         if (this.entity instanceof LivingEntity living) {
             Set<AttributeInstance> set = living.getAttributes().getAttributesToSync();
             if (!set.isEmpty()) {
-                this.broadcastAndSend(
+                this.synchronizer.sendToTrackingPlayersAndSelf(
                         new ClientboundUpdateAttributesPacket(this.entity.getId(), set)
                 );
             }

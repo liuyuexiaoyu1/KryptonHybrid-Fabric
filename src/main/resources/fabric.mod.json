@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "krypton_hybrid",
+  "version": "${version}",
+  "name": "Krypton Hybrid",
+  "description": "Network compression and packet optimization for Minecraft.",
+  "authors": [
+    "xinian"
+  ],
+  "contact": {},
+  "license": "LGPL-3.0-only",
+  "icon": "assets/krypton_hybrid/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.xinian.KryptonHybrid.KryptonHybrid"
+    ],
+    "client": [
+      "com.xinian.KryptonHybrid.client.KryptonHybridClient"
+    ]
+  },
+  "mixins": [
+    "krypton_hybrid.mixins.json"
+  ],
+  "accessWidener": "krypton_hybrid.accesswidener",
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}",
+    "java": ">=21"
+  }
+}

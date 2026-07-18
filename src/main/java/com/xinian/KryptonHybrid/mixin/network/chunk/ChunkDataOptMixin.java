@@ -5,10 +5,12 @@ import com.xinian.KryptonHybrid.shared.network.chunk.ChunkDataCodec;
 import com.xinian.KryptonHybrid.shared.network.control.KryptonWireFormat;
 import io.netty.buffer.Unpooled;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.LongArrayTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.levelgen.Heightmap;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -18,6 +20,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Optimizes {@link ClientboundLevelChunkPacketData} serialization with two
@@ -80,7 +83,7 @@ public abstract class ChunkDataOptMixin {
     /** Krypton chunk-data marker byte. Never collides with vanilla NBT (starts with TAG_Compound = 0x0A). */
     @Unique private static final int KRYPTON_MARKER = 0x4B;
 
-    @Shadow @Final private CompoundTag heightmaps;
+    @Shadow @Final private Map<Heightmap.Types, long[]> heightmaps;
     @Shadow @Final private byte[] buffer;
     @Shadow @Final private List<ClientboundLevelChunkPacketData.BlockEntityInfo> blockEntitiesData;
 
@@ -118,8 +121,12 @@ public abstract class ChunkDataOptMixin {
 
         buf.writeByte(KRYPTON_MARKER);
 
-        // --- Heightmaps (binary + XOR-delta) ---
-        ChunkDataCodec.writeHeightmaps(buf, this.heightmaps);
+        // --- Heightmaps (convert Map<Heightmap.Types, long[]> to CompoundTag, then binary + XOR-delta) ---
+        CompoundTag heightmapsTag = new CompoundTag();
+        for (Map.Entry<Heightmap.Types, long[]> e : this.heightmaps.entrySet()) {
+            heightmapsTag.put(e.getKey().getSerializationKey(), new LongArrayTag(e.getValue()));
+        }
+        ChunkDataCodec.writeHeightmaps(buf, heightmapsTag);
 
         // --- Split section buffer into blocks + biomes ---
         FriendlyByteBuf blocksBuf = new FriendlyByteBuf(Unpooled.buffer(this.buffer.length));
@@ -142,7 +149,6 @@ public abstract class ChunkDataOptMixin {
 
         // --- Block entities (unchanged) ---
         ClientboundLevelChunkPacketData.BlockEntityInfo.LIST_STREAM_CODEC.encode(buf, this.blockEntitiesData);
-
 
         ci.cancel();
     }

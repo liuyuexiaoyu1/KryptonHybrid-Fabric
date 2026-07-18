@@ -1,5 +1,7 @@
 package com.xinian.KryptonHybrid.shared.network.control;
 
+import com.xinian.KryptonHybrid.shared.network.util.KryptonConnectionUtil;
+
 import io.netty.channel.Channel;
 import net.minecraft.network.Connection;
 import com.xinian.KryptonHybrid.shared.network.handshake.KryptonHelloPayload;
@@ -28,7 +30,7 @@ public final class KryptonWireFormat {
     }
 
     public static boolean canWrite(Connection connection) {
-        return connection != null && canWrite(connection.channel());
+        return connection != null && canWrite(KryptonConnectionUtil.channel(connection));
     }
 
     public static boolean canWrite(Channel channel) {
@@ -41,7 +43,7 @@ public final class KryptonWireFormat {
     }
 
     private static boolean canWriteFeature(Connection connection, int featureFlag) {
-        return connection != null && canWriteFeature(connection.channel(), featureFlag);
+        return connection != null && canWriteFeature(KryptonConnectionUtil.channel(connection), featureFlag);
     }
 
     private static boolean canWriteFeature(Channel channel, int featureFlag) {
