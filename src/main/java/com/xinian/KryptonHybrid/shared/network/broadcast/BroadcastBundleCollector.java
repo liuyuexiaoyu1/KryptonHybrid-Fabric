@@ -136,7 +136,7 @@ public final class BroadcastBundleCollector {
             if (packets.size() == 1) {
                 player.connection.send(packets.get(0));
             } else {
-                int limit = BundlerInfo.BUNDLE_SIZE_LIMIT;
+                int limit = BundlerInfo.BUNDLE_SIZE_LIMIT - 256;
                 for (int i = 0; i < packets.size(); i += limit) {
                     int end = Math.min(i + limit, packets.size());
                     List<Packet<?>> chunk = packets.subList(i, end);

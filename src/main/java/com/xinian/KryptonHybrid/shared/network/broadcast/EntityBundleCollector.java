@@ -220,9 +220,9 @@ public final class EntityBundleCollector {
             if (packets.size() == 1) {
                 conn.send(packets.get(0));
             } else {
-                // Split into chunks of BUNDLE_SIZE_LIMIT (4096) to avoid
-                // "Too many packets in a bundle" in 26.2.
-                int limit = BundlerInfo.BUNDLE_SIZE_LIMIT;
+                // Leave headroom for ViaFabricPlus protocol translation which may
+                // add/subtract packets during bundle translation.
+                int limit = BundlerInfo.BUNDLE_SIZE_LIMIT - 256;
                 for (int i = 0; i < packets.size(); i += limit) {
                     int end = Math.min(i + limit, packets.size());
                     List<Packet<?>> chunk = packets.subList(i, end);
