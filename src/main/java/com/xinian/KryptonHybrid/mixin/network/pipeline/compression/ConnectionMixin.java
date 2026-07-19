@@ -37,20 +37,6 @@ public class ConnectionMixin implements ZstdUpgradeExtension {
     @Unique
     public boolean krypton$getCompressionValidate() { return krypton$compressionValidate; }
 
-    @Unique
-    private static boolean kryptonfnp$isKryptonOrVanillaDecompressor(Object o) {
-        return o instanceof CompressionEncoder
-                || o instanceof MinecraftCompressDecoder
-                || o instanceof ZstdCompressDecoder;
-    }
-
-    @Unique
-    private static boolean kryptonfnp$isKryptonOrVanillaCompressor(Object o) {
-        return o instanceof CompressionDecoder
-                || o instanceof MinecraftCompressEncoder
-                || o instanceof ZstdCompressEncoder;
-    }
-
     /**
      * Upgrades the pipeline from Velocity/Minecraft compression to Zstd.
      * Called after the Krypton hello handshake confirms Zstd support.
@@ -75,53 +61,36 @@ public class ConnectionMixin implements ZstdUpgradeExtension {
         channel.pipeline().fireUserEventTriggered(KryptonPipelineEvent.COMPRESSION_ENABLED);
     }
 
-    @Inject(method = "setupCompression", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "setupCompression", at = @At("HEAD"))
     public void setCompressionThreshold(int compressionThreshold, boolean validate, CallbackInfo ci) {
         this.krypton$compressionThreshold = compressionThreshold;
         this.krypton$compressionValidate = validate;
-        if (compressionThreshold < 0) {
-            if (kryptonfnp$isKryptonOrVanillaDecompressor(this.channel.pipeline().get("decompress"))) {
-                this.channel.pipeline().remove("decompress");
-            }
-            if (kryptonfnp$isKryptonOrVanillaCompressor(this.channel.pipeline().get("compress"))) {
-                this.channel.pipeline().remove("compress");
-            }
+    }
 
-            this.channel.pipeline().fireUserEventTriggered(KryptonPipelineEvent.COMPRESSION_DISABLED);
-        } else {
-            Object existingDecoder = channel.pipeline().get("decompress");
-            Object existingEncoder = channel.pipeline().get("compress");
+    /** Replaces vanilla compressors with Velocity-native ones after vanilla setup is done. */
+    @Inject(method = "setupCompression", at = @At("RETURN"))
+    public void postSetupCompression(int compressionThreshold, boolean validate, CallbackInfo ci) {
+        if (compressionThreshold < 0) return;
 
-            // If Zstd is already set up, just update threshold
-            if (existingDecoder instanceof ZstdCompressDecoder
-                    && existingEncoder instanceof ZstdCompressEncoder) {
-                ((ZstdCompressDecoder) existingDecoder).setThreshold(compressionThreshold);
-                ((ZstdCompressEncoder) existingEncoder).setThreshold(compressionThreshold);
-                this.channel.pipeline().fireUserEventTriggered(KryptonPipelineEvent.COMPRESSION_THRESHOLD_UPDATED);
-
-            } else if (existingDecoder instanceof MinecraftCompressDecoder
-                    && existingEncoder instanceof MinecraftCompressEncoder) {
-                ((MinecraftCompressDecoder) existingDecoder).setThreshold(compressionThreshold);
-                ((MinecraftCompressEncoder) existingEncoder).setThreshold(compressionThreshold);
-                this.channel.pipeline().fireUserEventTriggered(KryptonPipelineEvent.COMPRESSION_THRESHOLD_UPDATED);
-
-            } else {
-                // Always install Velocity-native Minecraft compression during initial setup.
-                // Zstd is only used after the Krypton hello handshake confirms peer support.
-                VelocityCompressor compressor = Natives.compress.get().create(4);
-
-                MinecraftCompressEncoder encoder =
-                        new MinecraftCompressEncoder(compressionThreshold, compressor);
-                MinecraftCompressDecoder decoder =
-                        new MinecraftCompressDecoder(compressionThreshold, validate, compressor);
-
-                channel.pipeline().addBefore("decoder", "decompress", decoder);
-                channel.pipeline().addBefore("encoder", "compress", encoder);
-
-                this.channel.pipeline().fireUserEventTriggered(KryptonPipelineEvent.COMPRESSION_ENABLED);
-            }
+        // Replace the vanilla compressors with Velocity-native ones.
+        // Remove vanilla handlers first.
+        if (this.channel.pipeline().get("decompress") instanceof CompressionDecoder) {
+            this.channel.pipeline().remove("decompress");
+        }
+        if (this.channel.pipeline().get("compress") instanceof CompressionEncoder) {
+            this.channel.pipeline().remove("compress");
         }
 
-        ci.cancel();
+        VelocityCompressor compressor = Natives.compress.get().create(4);
+
+        MinecraftCompressEncoder encoder =
+                new MinecraftCompressEncoder(compressionThreshold, compressor);
+        MinecraftCompressDecoder decoder =
+                new MinecraftCompressDecoder(compressionThreshold, validate, compressor);
+
+        channel.pipeline().addBefore("decoder", "decompress", decoder);
+        channel.pipeline().addBefore("encoder", "compress", encoder);
+
+        this.channel.pipeline().fireUserEventTriggered(KryptonPipelineEvent.COMPRESSION_ENABLED);
     }
 }
