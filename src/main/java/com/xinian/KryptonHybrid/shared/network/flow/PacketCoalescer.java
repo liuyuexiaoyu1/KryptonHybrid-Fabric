@@ -89,15 +89,25 @@ public final class PacketCoalescer {
             Packet<?> pkt = packets.get(i);
 
             if (pkt instanceof ClientboundSetEntityMotionPacket motion) {
-                if (!seenMotion.add(motion.id())) {
+                //#if MC >= 26.1
+                int motionId = motion.id();
+                //#else
+                //$$ int motionId = motion.getId();
+                //#endif
+                if (!seenMotion.add(motionId)) {
                     packets.remove(i);
                 }
             } else if (pkt instanceof ClientboundTeleportEntityPacket teleport) {
-                if (!seenTeleport.add(teleport.id())) {
+                //#if MC >= 12102
+                int teleportId = teleport.id();
+                //#else
+                //$$ int teleportId = teleport.getId();
+                //#endif
+                if (!seenTeleport.add(teleportId)) {
                     packets.remove(i);
                 } else {
                     if (teleportedEntities == null) teleportedEntities = new IntOpenHashSet();
-                    teleportedEntities.add(teleport.id());
+                    teleportedEntities.add(teleportId);
                 }
             } else if (pkt instanceof ClientboundSetEntityDataPacket data) {
                 // Merge multiple metadata updates for the same entity into a single
@@ -136,7 +146,16 @@ public final class PacketCoalescer {
                     packets.remove(i);
                 }
             } else if (pkt instanceof ClientboundMoveEntityPacket move) {
-                if (move.hasRotation() && !move.hasPosition()) {
+                //#if MC >= 26.1
+                boolean rotationOnly = move.hasRotation() && !move.hasPosition();
+                //#elseif MC >= 12102
+                //$$ // 1.21.2+ move packets always carry position + rotation, so
+                //$$ // rotation-only dedup does not apply.
+                //$$ boolean rotationOnly = false;
+                //#else
+                //$$ boolean rotationOnly = move.hasRotation() && !move.hasPosition();
+                //#endif
+                if (rotationOnly) {
                     int entityId = ((MoveEntityPacketAccessor) move).krypton$getEntityId();
                     if (!seenMoveRot.add(entityId)) {
                         packets.remove(i);

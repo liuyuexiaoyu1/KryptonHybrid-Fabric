@@ -1,13 +1,20 @@
 package com.xinian.KryptonHybrid.client.overlay;
 
 import com.xinian.KryptonHybrid.client.KryptonStatsClientController;
+import com.xinian.KryptonHybrid.client.ui.Gfx;
 import com.xinian.KryptonHybrid.client.ui.UITheme;
 import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
+//#if MC >= 26.1
+import com.xinian.KryptonHybrid.client.ui.GfxExtractor;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+//#else
+//$$ import com.xinian.KryptonHybrid.client.ui.GfxGui;
+//$$ import net.minecraft.client.gui.GuiGraphics;
+//#endif
 
 import java.util.List;
 
@@ -50,11 +57,28 @@ public final class KryptonHudOverlay {
     public static void setShowTopMod(boolean value) { showTopMod = value; }
     public static void toggleShowTopMod() { showTopMod = !showTopMod; }
 
+    //#if MC >= 26.1
     /** Called from a Hud.extractRenderState mixin. */
     public static void extractRenderState(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
+        renderInternal(GfxExtractor.of(graphics), graphics.guiWidth(), graphics.guiHeight());
+    }
+    //#else
+    //$$ /** Called from a Hud.render mixin. */
+    //$$ public static void render(GuiGraphics graphics) {
+    //$$     Minecraft mc = Minecraft.getInstance();
+    //$$     renderInternal(GfxGui.of(graphics),
+    //$$             mc.getWindow().getGuiScaledWidth(), mc.getWindow().getGuiScaledHeight());
+    //$$ }
+    //#endif
+
+    private static void renderInternal(Gfx g, int sw, int sh) {
         if (!visible) return;
         Minecraft mc = Minecraft.getInstance();
+        //#if MC >= 26.2
         if (mc.gui.screen() != null || mc.player == null) return;
+        //#else
+        //$$ if (mc.screen != null || mc.player == null) return;
+        //#endif
 
         StatsSnapshotPayload snap = KryptonStatsClientController.latestSnapshot();
         long now = System.currentTimeMillis();
@@ -72,8 +96,6 @@ public final class KryptonHudOverlay {
         int panelHeight = PADDING * 2 + lineH + BAR_HEIGHT + 4 + (lines - 2) * lineH;
         int panelWidth = BAR_WIDTH + PADDING * 2 + 4;
 
-        int sw = graphics.guiWidth();
-        int sh = graphics.guiHeight();
         int margin = 4;
         int panelX;
         int panelY;
@@ -100,9 +122,9 @@ public final class KryptonHudOverlay {
             }
         }
 
-        UITheme.fillRoundedRect(graphics, panelX, panelY, panelWidth, panelHeight,
+        UITheme.fillRoundedRect(g, panelX, panelY, panelWidth, panelHeight,
                 CORNER_RADIUS, UITheme.withAlpha(c.panelBg(), 0xCC));
-        UITheme.drawRoundedBorder(graphics, panelX, panelY, panelWidth, panelHeight,
+        UITheme.drawRoundedBorder(g, panelX, panelY, panelWidth, panelHeight,
                 CORNER_RADIUS, UITheme.withAlpha(c.widgetBorder(), 0x80));
 
         int x = panelX + PADDING;
@@ -112,30 +134,30 @@ public final class KryptonHudOverlay {
                 snap.compressionAlgorithm(),
                 String.format("%.1f%%", snap.savingPercent())).getString();
         int headColor = qualityColor(snap.savingPercent(), c);
-        graphics.text(mc.font, head, x, y, headColor, false);
+        g.text(mc.font, head, x, y, headColor, false);
 
         y += lineH;
         double clamped = Math.max(0.0, Math.min(100.0, snap.savingPercent()));
         int fillW = (int) (BAR_WIDTH * (clamped / 100.0));
-        UITheme.fillRoundedRect(graphics, x, y, BAR_WIDTH, BAR_HEIGHT, 2, c.widgetBg());
+        UITheme.fillRoundedRect(g, x, y, BAR_WIDTH, BAR_HEIGHT, 2, c.widgetBg());
         if (fillW > 1) {
-            UITheme.fillRoundedRect(graphics, x, y, fillW, BAR_HEIGHT, 2, headColor);
-            UITheme.fillRoundedRect(graphics, x, y, fillW, BAR_HEIGHT / 2, 2,
+            UITheme.fillRoundedRect(g, x, y, fillW, BAR_HEIGHT, 2, headColor);
+            UITheme.fillRoundedRect(g, x, y, fillW, BAR_HEIGHT / 2, 2,
                     UITheme.brighten(headColor, 0.25f));
         }
-        UITheme.drawRoundedBorder(graphics, x, y, BAR_WIDTH, BAR_HEIGHT, 2,
+        UITheme.drawRoundedBorder(g, x, y, BAR_WIDTH, BAR_HEIGHT, 2,
                 UITheme.withAlpha(c.widgetBorder(), 0x60));
 
         y += BAR_HEIGHT + 3;
-        graphics.text(mc.font,
+        g.text(mc.font,
                 Component.translatable("hud.krypton_hybrid.tx", NetworkTrafficStats.formatBytes(snap.wireBytesPerSecond())).getString(),
                 x, y, c.textSecondary(), false);
         y += lineH;
-        graphics.text(mc.font,
+        g.text(mc.font,
                 Component.translatable("hud.krypton_hybrid.rx", NetworkTrafficStats.formatBytes(snap.receivedBytesPerSecond())).getString(),
                 x, y, c.textSecondary(), false);
         y += lineH;
-        graphics.text(mc.font,
+        g.text(mc.font,
                 Component.translatable("hud.krypton_hybrid.saved", NetworkTrafficStats.formatBytes(snap.savedBytes())).getString(),
                 x, y, c.textMuted(), false);
 
@@ -150,8 +172,8 @@ public final class KryptonHudOverlay {
             int leftMaxW = panelWidth - PADDING * 2 - rw - 6;
             String left = Component.translatable("hud.krypton_hybrid.top_mod",
                     truncate(mc.font, top.modId(), leftMaxW - mc.font.width("▶ "))).getString();
-            graphics.text(mc.font, left, x, y, c.accentLight(), false);
-            graphics.text(mc.font, right, panelX + panelWidth - PADDING - rw, y, c.textSecondary(), false);
+            g.text(mc.font, left, x, y, c.accentLight(), false);
+            g.text(mc.font, right, panelX + panelWidth - PADDING - rw, y, c.textSecondary(), false);
         }
     }
 

@@ -1,7 +1,7 @@
 package com.xinian.KryptonHybrid.client.ui;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -68,7 +68,7 @@ public class MCPanel {
         return false;
     }
 
-    public void render(GuiGraphicsExtractor g, int mouseX, int mouseY) {
+    public void render(Gfx g, int mouseX, int mouseY) {
         updateAnimations(mouseX, mouseY);
         var c = UITheme.colors();
         boolean hasTitle = title != null && !title.isEmpty();
@@ -114,7 +114,7 @@ public class MCPanel {
         }
     }
 
-    private void renderTitleBar(GuiGraphicsExtractor g, UITheme.ColorPalette c) {
+    private void renderTitleBar(Gfx g, UITheme.ColorPalette c) {
         UITheme.fillRoundedRect(g, x, y, width, TITLE_BAR_HEIGHT / 2, CORNER_RADIUS,
                 UITheme.brighten(c.headerBg(), 0.03f));
         UITheme.fillRoundedRect(g, x, y + TITLE_BAR_HEIGHT / 2 - 2, width, TITLE_BAR_HEIGHT / 2 + 2,
@@ -154,6 +154,6 @@ public class MCPanel {
 
     @FunctionalInterface
     public interface RenderEntry {
-        void render(GuiGraphicsExtractor graphics, int x, int y, int width, int height);
+        void render(Gfx graphics, int x, int y, int width, int height);
     }
 }

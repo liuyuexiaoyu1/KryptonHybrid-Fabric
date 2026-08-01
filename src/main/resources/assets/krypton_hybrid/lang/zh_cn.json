@@ -85,7 +85,7 @@
   "gui.krypton_hybrid.label.hottest_packet_bytes": "包占用",
   "gui.krypton_hybrid.label.hottest_mod": "最高字节模组",
   "gui.krypton_hybrid.label.hottest_mod_bytes": "模组占用",
-  "gui.krypton_hybrid.footer_hint": "按 %1$s 可重新打开仪表盘；点击刷新会向服务器请求新的统计快照。",
+  "gui.krypton_hybrid.footer_hint": "使用 /krypton stats gui 可重新打开仪表盘；点击刷新会向服务器请求新的统计快照。",
   "gui.krypton_hybrid.hint.requesting": "正在请求 Krypton 统计快照...",
   "gui.krypton_hybrid.button.refresh": "刷新",
   "gui.krypton_hybrid.button.close": "关闭",

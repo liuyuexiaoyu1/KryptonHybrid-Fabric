@@ -46,10 +46,17 @@ public final class KryptonHybrid implements ModInitializer {
     }
 
     private static void registerPayloadTypes() {
+        //#if MC >= 26.1
         PayloadTypeRegistry.clientboundConfiguration().register(KryptonHelloPayload.TYPE, KryptonHelloPayload.STREAM_CODEC);
         PayloadTypeRegistry.serverboundConfiguration().register(KryptonHelloPayload.TYPE, KryptonHelloPayload.STREAM_CODEC);
         PayloadTypeRegistry.clientboundPlay().register(StatsSnapshotPayload.TYPE, StatsSnapshotPayload.STREAM_CODEC);
         PayloadTypeRegistry.serverboundPlay().register(StatsRequestPayload.TYPE, StatsRequestPayload.STREAM_CODEC);
+        //#else
+        //$$ PayloadTypeRegistry.configurationS2C().register(KryptonHelloPayload.TYPE, KryptonHelloPayload.STREAM_CODEC);
+        //$$ PayloadTypeRegistry.configurationC2S().register(KryptonHelloPayload.TYPE, KryptonHelloPayload.STREAM_CODEC);
+        //$$ PayloadTypeRegistry.playS2C().register(StatsSnapshotPayload.TYPE, StatsSnapshotPayload.STREAM_CODEC);
+        //$$ PayloadTypeRegistry.playC2S().register(StatsRequestPayload.TYPE, StatsRequestPayload.STREAM_CODEC);
+        //#endif
     }
 
     private static void registerServerNetworking() {
@@ -62,7 +69,11 @@ public final class KryptonHybrid implements ModInitializer {
         });
 
         ServerConfigurationNetworking.registerGlobalReceiver(KryptonHelloPayload.TYPE, (payload, context) -> {
+            //#if MC >= 26.1
             Connection connection = ((IServerCommonListenerAccessor) context.packetListener()).krypton$getConnection();
+            //#else
+            //$$ Connection connection = ((IServerCommonListenerAccessor) context.networkHandler()).krypton$getConnection();
+            //#endif
             PacketControlState.get(KryptonConnectionUtil.channel(connection)).markHelloNegotiated(payload.featureFlags());
         });
 

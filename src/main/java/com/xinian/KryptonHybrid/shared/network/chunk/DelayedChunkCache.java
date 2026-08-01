@@ -69,8 +69,16 @@ public final class DelayedChunkCache {
         // Only cache chunks within the configured extra-distance radius.
         int maxDist = KryptonConfig.dccDistance;
         ChunkPos playerChunk = player.chunkPosition();
+//#if MC >= 26.1
         int dx = pos.x() - playerChunk.x();
+        //#else
+        //$$ int dx = pos.x - playerChunk.x;
+        //#endif
+//#if MC >= 26.1
         int dz = pos.z() - playerChunk.z();
+        //#else
+        //$$ int dz = pos.z - playerChunk.z;
+        //#endif
         if (dx * dx + dz * dz > maxDist * maxDist) return false;
 
         PlayerEntry e = perPlayerCache.computeIfAbsent(player, k -> new PlayerEntry(dimension));
@@ -82,7 +90,11 @@ public final class DelayedChunkCache {
         // If the cache is already at the size limit, skip caching this chunk.
         if (e.entries.size() >= KryptonConfig.dccSizeLimit) return false;
 
+//#if MC >= 26.1
         e.entries.put(pos.pack(), System.currentTimeMillis());
+        //#else
+        //$$ e.entries.put(pos.toLong(), System.currentTimeMillis());
+        //#endif
         return true;
     }
 
@@ -105,7 +117,11 @@ public final class DelayedChunkCache {
         }
 
         // remove() returns ABSENT (-1) when the key is not present.
+//#if MC >= 26.1
         return e.entries.remove(pos.pack()) != ABSENT;
+        //#else
+        //$$ return e.entries.remove(pos.toLong()) != ABSENT;
+        //#endif
     }
 
     /**
@@ -140,8 +156,16 @@ public final class DelayedChunkCache {
             int maxDist    = KryptonConfig.dccDistance;
             int maxDistSq  = maxDist * maxDist;
             ChunkPos pChunk = player.chunkPosition();
+//#if MC >= 26.1
             int px = pChunk.x();
+            //#else
+            //$$ int px = pChunk.x;
+            //#endif
+//#if MC >= 26.1
             int pz = pChunk.z();
+            //#else
+            //$$ int pz = pChunk.z;
+            //#endif
 
             ObjectIterator<Long2LongMap.Entry> iter = Long2LongMaps.fastIterator(e.entries);
             while (iter.hasNext()) {
@@ -149,9 +173,21 @@ public final class DelayedChunkCache {
                 long packedPos = entry.getLongKey();
                 long timestamp = entry.getLongValue();
 
+//#if MC >= 26.1
                 ChunkPos pos = ChunkPos.unpack(packedPos);
+                //#else
+                //$$ ChunkPos pos = new ChunkPos(packedPos);
+                //#endif
+//#if MC >= 26.1
                 int dx = pos.x() - px;
+                //#else
+                //$$ int dx = pos.x - px;
+                //#endif
+//#if MC >= 26.1
                 int dz = pos.z() - pz;
+                //#else
+                //$$ int dz = pos.z - pz;
+                //#endif
                 boolean tooFar  = (dx * dx + dz * dz) > maxDistSq;
                 boolean expired = (now - timestamp) >= timeoutMs;
 

@@ -60,7 +60,11 @@ public abstract class PlayerChunkSenderMixin {
 
     @Inject(method = "markChunkPendingToSend", at = @At("TAIL"))
     private void krypton$trackPendingChunkAge(LevelChunk chunk, CallbackInfo ci) {
+//#if MC >= 26.1
         long pos = chunk.getPos().pack();
+        //#else
+        //$$ long pos = chunk.getPos().toLong();
+        //#endif
         if (this.krypton$enqueueTimeMs.get(pos) == KRYPTON_ABSENT) {
             this.krypton$enqueueTimeMs.put(pos, System.currentTimeMillis());
         }
@@ -68,7 +72,11 @@ public abstract class PlayerChunkSenderMixin {
 
     @Inject(method = "dropChunk", at = @At("TAIL"))
     private void krypton$clearDroppedChunkAge(ServerPlayer player, ChunkPos chunkPos, CallbackInfo ci) {
+//#if MC >= 26.1
         this.krypton$enqueueTimeMs.remove(chunkPos.pack());
+        //#else
+        //$$ this.krypton$enqueueTimeMs.remove(chunkPos.toLong());
+        //#endif
     }
 
     @Inject(method = "sendNextChunks", at = @At("HEAD"))
@@ -136,7 +144,11 @@ public abstract class PlayerChunkSenderMixin {
         for (int i = 0; i < resultSize; i++) {
             LevelChunk chunk = candidates.get(i);
             result.add(chunk);
+//#if MC >= 26.1
             long packed = chunk.getPos().pack();
+            //#else
+            //$$ long packed = chunk.getPos().toLong();
+            //#endif
             this.pendingChunks.remove(packed);
             this.krypton$enqueueTimeMs.remove(packed);
         }
@@ -146,12 +158,24 @@ public abstract class PlayerChunkSenderMixin {
 
     @Unique
     private double krypton$priorityScore(ChunkPos candidate, ChunkPos playerChunk, long nowMs) {
+//#if MC >= 26.1
         int dx = candidate.x() - playerChunk.x();
+        //#else
+        //$$ int dx = candidate.x - playerChunk.x;
+        //#endif
+//#if MC >= 26.1
         int dz = candidate.z() - playerChunk.z();
+        //#else
+        //$$ int dz = candidate.z - playerChunk.z;
+        //#endif
 
         double distanceScore = dx * dx + dz * dz;
 
+//#if MC >= 26.1
         long enqueuedAt = this.krypton$enqueueTimeMs.get(candidate.pack());
+        //#else
+        //$$ long enqueuedAt = this.krypton$enqueueTimeMs.get(candidate.toLong());
+        //#endif
         double ageSeconds = enqueuedAt == KRYPTON_ABSENT ? 0.0 : Math.max(0.0, (nowMs - enqueuedAt) / 1000.0);
         double ageBias = Math.min(ageSeconds, 10.0) * 2.0;
 

@@ -10,9 +10,11 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+//#if MC >= 12111
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
-
+//#else
+//$$ import net.minecraft.resources.ResourceLocation;
+//#endif
 /**
  * Client-side controller for the stats dashboard.
  *
@@ -28,16 +30,18 @@ public final class KryptonStatsClientController {
 
     private static final long SNAPSHOT_REQUEST_COOLDOWN_MS = 750L;
 
+    //#if MC >= 12111
     /** Category for Krypton Hybrid keybindings. */
     private static final KeyMapping.Category KRYPTON_CATEGORY =
             KeyMapping.Category.register(Identifier.fromNamespaceAndPath("krypton_hybrid", "key.categories.krypton_hybrid"));
-
-    private static final KeyMapping OPEN_STATS_KEY = new KeyMapping(
-            "key.krypton_hybrid.open_stats",
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_K,
-            KRYPTON_CATEGORY
-    );
+    //#elseif MC >= 12110
+    //$$ /** Category for Krypton Hybrid keybindings. */
+    //$$ private static final KeyMapping.Category KRYPTON_CATEGORY =
+    //$$         KeyMapping.Category.register(ResourceLocation.fromNamespaceAndPath("krypton_hybrid", "key.categories.krypton_hybrid"));
+    //#else
+    //$$ /** Category for Krypton Hybrid keybindings. */
+    //$$ private static final String KRYPTON_CATEGORY = "key.categories.krypton_hybrid";
+    //#endif
 
     private static final KeyMapping TOGGLE_HUD_KEY = new KeyMapping(
             "key.krypton_hybrid.toggle_hud",
@@ -64,15 +68,20 @@ public final class KryptonStatsClientController {
     private static void onClientTick(Minecraft minecraft) {
         if (minecraft.player == null) return;
 
-        while (OPEN_STATS_KEY.consumeClick()) {
-            openOrRequestLatest();
-        }
         while (TOGGLE_HUD_KEY.consumeClick()) {
             KryptonHudOverlay.toggleVisible();
+            //#if MC >= 26.1
             minecraft.player.sendOverlayMessage(
+            //#else
+            //$$ minecraft.player.displayClientMessage(
+            //#endif
                     Component.translatable(KryptonHudOverlay.isVisible()
                             ? "gui.krypton_hybrid.hud.on"
-                            : "gui.krypton_hybrid.hud.off"));
+                            : "gui.krypton_hybrid.hud.off")
+                    //#if MC < 26.1
+                    //$$ , true
+                    //#endif
+            );
         }
     }
 
@@ -85,14 +94,17 @@ public final class KryptonStatsClientController {
         }
 
         Minecraft minecraft = Minecraft.getInstance();
+        //#if MC >= 26.2
         if (minecraft.gui.screen() instanceof KryptonStatsScreen screen) {
+        //#else
+        //$$ if (minecraft.screen instanceof KryptonStatsScreen screen) {
+        //#endif
             screen.updateSnapshot(payload);
         } else if (!KryptonHudOverlay.isVisible()) {
             open(payload);
         }
     }
 
-    public static KeyMapping openStatsKey() { return OPEN_STATS_KEY; }
     public static KeyMapping toggleHudKey() { return TOGGLE_HUD_KEY; }
     public static StatsSnapshotPayload latestSnapshot() { return latestSnapshot; }
     public static long snapshotRequestCount() { return snapshotRequestCount; }
@@ -112,7 +124,11 @@ public final class KryptonStatsClientController {
         }
         requestFreshSnapshot();
         if (latestSnapshot == null) {
+            //#if MC >= 26.1
             minecraft.player.sendOverlayMessage(Component.translatable("gui.krypton_hybrid.hint.requesting"));
+            //#else
+            //$$ minecraft.player.displayClientMessage(Component.translatable("gui.krypton_hybrid.hint.requesting"), true);
+            //#endif
         }
     }
 
@@ -131,6 +147,10 @@ public final class KryptonStatsClientController {
 
     public static void open(StatsSnapshotPayload payload) {
         Minecraft minecraft = Minecraft.getInstance();
+        //#if MC >= 26.2
         minecraft.gui.setScreen(new KryptonStatsScreen(payload));
+        //#else
+        //$$ minecraft.setScreen(new KryptonStatsScreen(payload));
+        //#endif
     }
 }

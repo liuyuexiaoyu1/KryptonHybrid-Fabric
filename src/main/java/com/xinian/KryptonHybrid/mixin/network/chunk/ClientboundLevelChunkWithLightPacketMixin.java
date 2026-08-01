@@ -107,8 +107,13 @@ public abstract class ClientboundLevelChunkWithLightPacketMixin {
             for (String key : heightmaps.keySet()) {
                 Heightmap.Types type = Heightmap.Types.valueOf(key);
                 vanillaBuf.writeVarInt(type.ordinal());
+                //#if MC >= 12105
                 long[] data = heightmaps.getLongArray(key).orElseGet(() -> new long[0]);
                 FriendlyByteBuf.writeLongArray(vanillaBuf, data);
+                //#else
+                //$$ long[] data = heightmaps.getLongArray(key);
+                //$$ vanillaBuf.writeLongArray(data);
+                //#endif
             }
             vanillaBuf.writeVarInt(vanillaBuffer.length);
             vanillaBuf.writeBytes(vanillaBuffer);

@@ -19,6 +19,7 @@ import org.spongepowered.asm.mixin.injection.At;
 @Mixin(targets = "net.minecraft.server.level.ChunkMap$TrackedEntity")
 public class TrackedEntityBundleMixin {
 
+    //#if MC >= 12110
     @WrapOperation(
             method = "sendToTrackingPlayersFiltered",
             at = @At(
@@ -44,4 +45,18 @@ public class TrackedEntityBundleMixin {
             original.call(conn, packet);
         }
     }
+    //#else
+    //$$ @WrapOperation(
+    //$$         method = "broadcast",
+    //$$         at = @At(
+    //$$                 value = "INVOKE",
+    //$$                 target = "Lnet/minecraft/server/network/ServerPlayerConnection;send(Lnet/minecraft/network/protocol/Packet;)V"
+    //$$         )
+    //$$ )
+    //$$ private void krypton$collectForBundle(ServerPlayerConnection conn, Packet<?> packet, Operation<Void> original) {
+    //$$     if (!EntityBundleCollector.collect(conn, packet)) {
+    //$$         original.call(conn, packet);
+    //$$     }
+    //$$ }
+    //#endif
 }

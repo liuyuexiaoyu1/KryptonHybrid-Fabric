@@ -2,7 +2,7 @@
   "required": true,
   "minVersion": "0.8",
   "package": "com.xinian.KryptonHybrid.mixin",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "{{COMPATIBILITY_LEVEL}}",
   "refmap": "krypton_hybrid.refmap.json",
   "mixins": [
     "fastchunkentityaccess.EntitySectionAccessor",

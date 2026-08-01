@@ -102,11 +102,19 @@ public class PacketEncoderMixin {
     @Unique
     private static String kryptonfnp$resolveKey(Packet<?> packet) {
         if (packet instanceof ClientboundCustomPayloadPacket cp) {
+            //#if MC >= 12111
             net.minecraft.resources.Identifier id = cp.payload().type().id();
+            //#else
+            //$$ net.minecraft.resources.ResourceLocation id = cp.payload().type().id();
+            //#endif
             return "custom:" + id.getNamespace() + "/" + id.getPath();
         }
         if (packet instanceof ServerboundCustomPayloadPacket sp) {
+            //#if MC >= 12111
             net.minecraft.resources.Identifier id = sp.payload().type().id();
+            //#else
+            //$$ net.minecraft.resources.ResourceLocation id = sp.payload().type().id();
+            //#endif
             return "custom:" + id.getNamespace() + "/" + id.getPath();
         }
         return packet.getClass().getSimpleName();

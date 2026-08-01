@@ -1,129 +1,65 @@
 plugins {
-    id 'net.fabricmc.fabric-loom' version '1.17.3'
-    id 'maven-publish'
+	id 'maven-publish'
+    id 'fabric-loom' version '1.17.3' apply false
+    id 'net.fabricmc.fabric-loom-remap' version '1.17.3' apply false
+
+	// https://github.com/ReplayMod/preprocessor
+	// https://github.com/Fallen-Breath/preprocessor
+	id 'com.replaymod.preprocess' version 'c5abb4fb12'
 }
 
-version = project.mod_version
-group = project.mod_group_id
+preprocess {
+	strictExtraMappings = false
 
-base {
-    archivesName = project.mod_id
+	def mc1211 = createNode('1.21.1', 1_21_01, '')
+	def mc1213 = createNode('1.21.3', 1_21_03, '')
+	def mc1214 = createNode('1.21.4', 1_21_04, '')
+	def mc1215 = createNode('1.21.5', 1_21_05, '')
+	def mc1218 = createNode('1.21.8', 1_21_08, '')
+	def mc12110 = createNode('1.21.10', 1_21_10, '')
+	def mc12111 = createNode('1.21.11', 1_21_11, '')
+	def mc260102 = createNode('26.1.2', 26_01_02, '')
+	def mc260200 = createNode('26.2', 26_02_00, '')
+
+	mc1211.link(mc1213, file('versions/mapping-1.21.1-1.21.3.txt'))
+	mc1213.link(mc1214, file('versions/mapping-1.21.3-1.21.4.txt'))
+	mc1214.link(mc1215, file('versions/mapping-1.21.4-1.21.5.txt'))
+	mc1215.link(mc1218, file('versions/mapping-1.21.5-1.21.8.txt'))
+	mc1218.link(mc12110, file('versions/mapping-1.21.8-1.21.10.txt'))
+	mc12110.link(mc12111, file('versions/mapping-1.21.10-1.21.11.txt'))
+	mc12111.link(mc260102, file('versions/mapping-1.21.11-26.1.2.txt'))
+	mc260102.link(mc260200, file('versions/mapping-26.1.2-26.2.txt'))
+
+	for (final def node in getNodes()) {
+		findProject(node.project).ext.mcVersion = node.mcVersion
+	}
 }
 
-repositories {
-    mavenCentral()
-    maven { url = 'https://maven.fabricmc.net/' }
-    maven { url = 'https://repo.papermc.io/repository/maven-public/' }
+tasks.register('buildAndGather') {
+	subprojects {
+		dependsOn project.tasks.named('build').get()
+	}
+	doFirst {
+		println 'Gathering builds'
+		def buildLibs = {
+			p -> p.buildDir.toPath().resolve('libs')
+		}
+		delete fileTree(buildLibs(rootProject)) {
+			include '*'
+		}
+		subprojects {
+			copy {
+				from(buildLibs(project)) {
+					include '*.jar'
+					exclude '*-dev.jar', '*-sources.jar', '*-shadow.jar'
+				}
+				into buildLibs(rootProject)
+				duplicatesStrategy = DuplicatesStrategy.INCLUDE
+			}
+		}
+	}
 }
 
-loom {
-    accessWidenerPath = file('src/main/resources/krypton_hybrid.accesswidener')
-}
-
-java {
-    toolchain.languageVersion = JavaLanguageVersion.of(25)
-    withSourcesJar()
-}
-
-dependencies {
-    minecraft "com.mojang:minecraft:${minecraft_version}"
-    implementation "net.fabricmc:fabric-loader:${loader_version}"
-    implementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
-
-    implementation include("com.github.luben:zstd-jni:${zstd_jni_version}")
-    implementation include("com.velocitypowered:velocity-native:${velocity_native_version}")
-}
-
-processResources {
-    inputs.property 'version', project.version
-    inputs.property 'minecraft_version', project.minecraft_version
-    inputs.property 'loader_version', project.loader_version
-
-    filesMatching('fabric.mod.json') {
-        expand(
-                version: project.version,
-                minecraft_version: project.minecraft_version,
-                loader_version: project.loader_version
-        )
-    }
-
-    exclude 'META-INF/accesstransformer.cfg'
-    exclude 'META-INF/jarjar/**'
-}
-
-publishing {
-    publications {
-        create('mavenJava', MavenPublication) {
-            artifactId = project.mod_id
-            from components.java
-        }
-    }
-    repositories {
-        maven {
-            url "file://${project.projectDir}/repo"
-        }
-    }
-}
-
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8'
-    options.release = 25
-}
-
-tasks.register('trainZstdDict', JavaExec) {
-    group = 'krypton'
-    description = 'Train a Zstd dictionary from sample files using the Java 25 toolchain.'
-    dependsOn tasks.named('classes')
-
-    javaLauncher = javaToolchains.launcherFor {
-        languageVersion = JavaLanguageVersion.of(25)
-    }
-
-    classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.xinian.KryptonHybrid.tool.ZstdDictionaryTrainer'
-
-    def samplesDirProp = providers.gradleProperty('samplesDir')
-    def outputDictProp = providers.gradleProperty('outputDict')
-    def dictSizeProp = providers.gradleProperty('dictSize')
-    def maxSamplesProp = providers.gradleProperty('maxSamples')
-    def minSampleBytesProp = providers.gradleProperty('minSampleBytes')
-    def maxSampleBytesProp = providers.gradleProperty('maxSampleBytes')
-    def evalSamplesProp = providers.gradleProperty('evalSamples')
-
-    doFirst {
-        def samplesDir = samplesDirProp.orNull
-        if (!samplesDir) {
-            throw new GradleException('Missing -PsamplesDir=<path>')
-        }
-
-        def outputDict = outputDictProp.orElse('config/krypton_hybrid.zdict').get()
-        def dictSize = dictSizeProp.orElse('65536').get()
-        def maxSamples = maxSamplesProp.orElse('8000').get()
-        def minSampleBytes = minSampleBytesProp.orElse('8').get()
-        def maxSampleBytes = maxSampleBytesProp.orElse('2097152').get()
-        def evalSamples = evalSamplesProp.orElse('1000').get()
-
-        args samplesDir.toString(), outputDict.toString(), dictSize.toString(), maxSamples.toString(),
-                minSampleBytes.toString(), maxSampleBytes.toString(), evalSamples.toString()
-    }
-}
-
-tasks.register('inspectZstdDict', JavaExec) {
-    group = 'krypton'
-    description = 'Inspect and validate a Krypton/Zstd dictionary file.'
-    dependsOn tasks.named('classes')
-
-    javaLauncher = javaToolchains.launcherFor {
-        languageVersion = JavaLanguageVersion.of(25)
-    }
-
-    classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.xinian.KryptonHybrid.tool.ZstdDictionaryTrainer'
-
-    def dictPathProp = providers.gradleProperty('dictPath')
-
-    doFirst {
-        def dictPath = dictPathProp.orElse('config/krypton_hybrid.zdict').get()
-        args 'inspect', dictPath.toString()
-    }
+tasks.withType(JavaCompile) {
+    options.compilerArgs << '-Xlint:-processing'
 }

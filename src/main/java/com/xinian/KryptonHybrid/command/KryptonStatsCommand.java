@@ -29,7 +29,11 @@ public final class KryptonStatsCommand {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(
             Commands.literal("krypton")
+                //#if MC >= 12111
                 .requires(source -> source.permissions() != net.minecraft.server.permissions.PermissionSet.NO_PERMISSIONS)
+                //#else
+                //$$ .requires(source -> source.hasPermission(2))
+                //#endif
                 .then(Commands.literal("stats")
                     .then(Commands.literal("show")
                         .executes(KryptonStatsCommand::executeShow))

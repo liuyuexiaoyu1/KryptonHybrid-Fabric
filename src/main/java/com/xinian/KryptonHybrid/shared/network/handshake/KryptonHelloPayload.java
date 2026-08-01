@@ -4,14 +4,22 @@ import io.netty.buffer.ByteBuf;
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+//#if MC >= 12111
 import net.minecraft.resources.Identifier;
+//#else
+//$$ import net.minecraft.resources.ResourceLocation;
+//#endif
 
 /**
  * Lightweight capability-negotiation marker payload used during configuration.
  */
 public record KryptonHelloPayload(int featureFlags) implements CustomPacketPayload {
     public static final Type<KryptonHelloPayload> TYPE =
+//#if MC >= 12111
             new Type<>(Identifier.fromNamespaceAndPath("krypton_hybrid", "hello"));
+            //#else
+            //$$ new Type<>(ResourceLocation.fromNamespaceAndPath("krypton_hybrid", "hello"));
+            //#endif
 
     public static final int FEATURE_CHUNK_DATA = 1;
     public static final int FEATURE_LIGHT_DATA = 1 << 1;

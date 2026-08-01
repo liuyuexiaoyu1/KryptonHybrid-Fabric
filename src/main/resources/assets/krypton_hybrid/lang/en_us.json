@@ -86,7 +86,7 @@
   "gui.krypton_hybrid.label.hottest_mod": "Top mod by bytes",
   "gui.krypton_hybrid.label.hottest_mod_bytes": "Mod footprint",
   "gui.krypton_hybrid.label.bar_saved": "%1$s saved",
-  "gui.krypton_hybrid.footer_hint": "Press %1$s to reopen the dashboard. Refresh requests a new snapshot from the server.",
+  "gui.krypton_hybrid.footer_hint": "Use /krypton stats gui to reopen the dashboard. Refresh requests a new snapshot from the server.",
   "gui.krypton_hybrid.hint.requesting": "Requesting Krypton stats snapshot...",
   "gui.krypton_hybrid.button.refresh": "Refresh",
   "gui.krypton_hybrid.button.close": "Close",

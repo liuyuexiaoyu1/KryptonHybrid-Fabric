@@ -72,7 +72,11 @@ public final class ChunkDataCodec {
         buf.writeVarInt(keys.size());
         for (String key : keys) {
             buf.writeUtf(key);
+//#if MC >= 12105
             long[] data = heightmaps.getLongArray(key).orElseGet(() -> new long[0]);
+            //#else
+            //$$ long[] data = heightmaps.getLongArray(key);
+            //#endif
             buf.writeVarInt(data.length);
             // XOR-delta + ZigZag VarLong: correlated heightmaps usually produce
             // small deltas, so avoid paying a fixed 8 bytes per long.
@@ -144,6 +148,11 @@ public final class ChunkDataCodec {
         if (bpe == 0) {
             // SingleValuePalette: one VarInt (the palette entry), no storage data.
             VarInt.read(buf);
+            //#if MC < 12105
+            //$$ // 1.21.1-1.21.3 SimpleBitStorage writes a VarInt length prefix
+            //$$ // (always 0 for a single-value palette). 1.21.5+ uses writeFixedSizeLongArray.
+            //$$ VarInt.read(buf);
+            //#endif
             return buf.readerIndex() - start;
         } else if (bpe <= globalThreshold) {
             // LinearPalette or HashMapPalette: VarInt(size) + size × VarInt(entry)
@@ -154,13 +163,19 @@ public final class ChunkDataCodec {
         }
         // else: GlobalPalette — no palette data
 
-        // Storage: written with writeFixedSizeLongArray — NO leading VarInt size.
+        //#if MC < 12105
+        //$$ // 1.21.1-1.21.3: VarInt(longCount) length prefix + longCount × long
+        //$$ int longCount = VarInt.read(buf);
+        //$$ buf.skipBytes(longCount * 8);
+        //#else
+        // 1.21.5+ / 26.x: written with writeFixedSizeLongArray — NO leading VarInt size.
         // The number of longs is derived from bits-per-entry and section element count,
         // matching SimpleBitStorage: valuesPerLong = 64 / bpe (integer division),
         // longCount = (sectionElements + valuesPerLong - 1) / valuesPerLong.
         int valuesPerLong = 64 / bpe;
         int longCount = (sectionElements + valuesPerLong - 1) / valuesPerLong;
         buf.skipBytes(longCount * 8);
+        //#endif
 
         return buf.readerIndex() - start;
     }
@@ -192,7 +207,11 @@ public final class ChunkDataCodec {
                 // ---- Block data: short(nonEmptyBlockCount) + short(fluidCount) ──
                 //                    + PalettedContainer<BlockState> ----
                 int blockStart = src.readerIndex();
-                src.skipBytes(4); // nonEmptyBlockCount + fluidCount (both short in 26.2)
+                //#if MC >= 26.1
+                src.skipBytes(4); // nonEmptyBlockCount + fluidCount (both short)
+                //#else
+                //$$ src.skipBytes(2); // nonEmptyBlockCount (short) only
+                //#endif
                 skipPalettedContainer(src, STATES_GLOBAL_THRESHOLD);
                 int blockSize = src.readerIndex() - blockStart;
                 // Copy block data to blocksOut
@@ -243,7 +262,11 @@ public final class ChunkDataCodec {
             for (int s = 0; s < sectionCount; s++) {
                 // ---- Block data: short(nonEmptyBlockCount) + short(fluidCount) + PalettedContainer<BlockState> ----
                 int blockStart = blocksSrc.readerIndex();
-                blocksSrc.skipBytes(4); // nonEmptyBlockCount + fluidCount (both short in 26.2)
+                //#if MC >= 26.1
+                blocksSrc.skipBytes(4); // nonEmptyBlockCount + fluidCount (both short)
+                //#else
+                //$$ blocksSrc.skipBytes(2); // nonEmptyBlockCount (short) only
+                //#endif
                 skipPalettedContainer(blocksSrc, STATES_GLOBAL_THRESHOLD);
                 int blockSize = blocksSrc.readerIndex() - blockStart;
                 blocksSrc.readerIndex(blockStart);
@@ -253,11 +276,18 @@ public final class ChunkDataCodec {
                 byte biomeFlag = biomesSrc.readByte();
                 if (biomeFlag == BIOME_SINGLE_VALUE) {
                     int biomeId = VarInt.read(biomesSrc);
-                    // Reconstruct single-value PalettedContainer (26.2 format):
-                    // byte(0) + VarInt(biomeId)  (no trailing storage — writeFixedSizeLongArray
-                    // with empty array writes nothing.)
+                    // Reconstruct single-value PalettedContainer:
+                    //#if MC < 12105
+                    //$$ // 1.21.1-1.21.3 format: byte(0) + VarInt(biomeId) + VarInt(0) (storage size prefix)
+                    //$$ out.writeByte(0);
+                    //$$ out.writeVarInt(biomeId);
+                    //$$ out.writeVarInt(0);
+                    //#else
+                    // 1.21.5+ / 26.x: byte(0) + VarInt(biomeId)  (no trailing storage —
+                    // writeFixedSizeLongArray with empty array writes nothing.)
                     out.writeByte(0);
                     out.writeVarInt(biomeId);
+                    //#endif
                 } else {
                     // BIOME_RAW: VarInt(length) + raw bytes
                     int biomeLen = VarInt.read(biomesSrc);

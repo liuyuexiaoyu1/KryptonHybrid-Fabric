@@ -1,13 +1,19 @@
 package com.xinian.KryptonHybrid.client.screen;
 
 import com.xinian.KryptonHybrid.client.overlay.KryptonHudOverlay;
+import com.xinian.KryptonHybrid.client.ui.Gfx;
 import com.xinian.KryptonHybrid.client.ui.MCButton;
 import com.xinian.KryptonHybrid.client.ui.MCPanel;
 import com.xinian.KryptonHybrid.client.ui.UITheme;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+//#if MC >= 26.1
+import com.xinian.KryptonHybrid.client.ui.GfxExtractor;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+//#else
+//$$ import com.xinian.KryptonHybrid.client.ui.GfxGui;
+//$$ import net.minecraft.client.gui.GuiGraphics;
+//#endif
 
 import java.util.concurrent.TimeUnit;
 
@@ -90,11 +96,28 @@ public final class KryptonStatsSettingsScreen extends Screen {
 
     @Override
     public void onClose() {
+        //#if MC >= 26.2
         this.minecraft.gui.setScreen(parent);
+        //#else
+        //$$ this.minecraft.setScreen(parent);
+        //#endif
     }
 
+    //#if MC >= 26.1
     @Override
     public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
+        renderState(GfxExtractor.of(g), mouseX, mouseY, partialTick);
+        for (var renderable : this.renderables) renderable.extractRenderState(g, mouseX, mouseY, partialTick);
+    }
+    //#else
+    //$$ @Override
+    //$$ public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    //$$     renderState(GfxGui.of(g), mouseX, mouseY, partialTick);
+    //$$     for (var renderable : this.renderables) renderable.render(g, mouseX, mouseY, partialTick);
+    //$$ }
+    //#endif
+
+    private void renderState(Gfx g, int mouseX, int mouseY, float partialTick) {
         var c = UITheme.colors();
         g.fill(0, 0, this.width, this.height, c.panelBg());
 
@@ -110,16 +133,19 @@ public final class KryptonStatsSettingsScreen extends Screen {
         g.text(this.font,
                 Component.translatable("gui.krypton_hybrid.settings.subtitle").getString(),
                 px + 18, py + 26, c.textSecondary(), false);
-
-        for (var renderable : this.renderables) {
-            renderable.extractRenderState(g, mouseX, mouseY, partialTick);
-        }
     }
 
+    //#if MC >= 26.1
     @Override
     public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
         // Custom background is handled in extractRenderState
     }
+    //#else
+    //$$ @Override
+    //$$ public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    //$$     // Custom background is handled in render
+    //$$ }
+    //#endif
 
     private void refreshLabels() {
         themeBtn.setMessage(themeLabel());

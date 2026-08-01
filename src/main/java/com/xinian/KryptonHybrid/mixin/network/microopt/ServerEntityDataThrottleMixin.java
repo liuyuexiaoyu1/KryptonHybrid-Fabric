@@ -21,6 +21,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * Throttles redundant {@link ClientboundSetEntityDataPacket} broadcasts by filtering
@@ -84,7 +85,11 @@ public abstract class ServerEntityDataThrottleMixin {
 
     @Shadow @Nullable private List<SynchedEntityData.DataValue<?>> trackedDataValues;
 
+    //#if MC >= 12110
     @Shadow @Final private ServerEntity.Synchronizer synchronizer;
+    //#else
+    //$$ @Shadow @Final private Consumer<Packet<?>> broadcast;
+    //#endif
 
     /**
      * Per-entity cache of the last broadcast value for each {@link SynchedEntityData}
@@ -134,9 +139,13 @@ public abstract class ServerEntityDataThrottleMixin {
             List<SynchedEntityData.DataValue<?>> filtered = krypton$filterUnchanged(dirtyList);
 
             if (!filtered.isEmpty()) {
+                //#if MC >= 12110
                 this.synchronizer.sendToTrackingPlayersAndSelf(
                         new ClientboundSetEntityDataPacket(this.entity.getId(), filtered)
                 );
+                //#else
+                //$$ this.broadcast.accept(new ClientboundSetEntityDataPacket(this.entity.getId(), filtered));
+                //#endif
             }
         }
 
@@ -144,9 +153,13 @@ public abstract class ServerEntityDataThrottleMixin {
         if (this.entity instanceof LivingEntity living) {
             Set<AttributeInstance> set = living.getAttributes().getAttributesToSync();
             if (!set.isEmpty()) {
+                //#if MC >= 12110
                 this.synchronizer.sendToTrackingPlayersAndSelf(
                         new ClientboundUpdateAttributesPacket(this.entity.getId(), set)
                 );
+                //#else
+                //$$ this.broadcast.accept(new ClientboundUpdateAttributesPacket(this.entity.getId(), set));
+                //#endif
             }
             set.clear();
         }

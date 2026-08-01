@@ -83,7 +83,11 @@ public abstract class ChunkDataOptMixin {
     /** Krypton chunk-data marker byte. Never collides with vanilla NBT (starts with TAG_Compound = 0x0A). */
     @Unique private static final int KRYPTON_MARKER = 0x4B;
 
+    //#if MC >= 12105
     @Shadow @Final private Map<Heightmap.Types, long[]> heightmaps;
+    //#else
+    //$$ @Shadow @Final private CompoundTag heightmaps;
+    //#endif
     @Shadow @Final private byte[] buffer;
     @Shadow @Final private List<ClientboundLevelChunkPacketData.BlockEntityInfo> blockEntitiesData;
 
@@ -122,11 +126,15 @@ public abstract class ChunkDataOptMixin {
         buf.writeByte(KRYPTON_MARKER);
 
         // --- Heightmaps (convert Map<Heightmap.Types, long[]> to CompoundTag, then binary + XOR-delta) ---
+        //#if MC >= 12105
         CompoundTag heightmapsTag = new CompoundTag();
         for (Map.Entry<Heightmap.Types, long[]> e : this.heightmaps.entrySet()) {
             heightmapsTag.put(e.getKey().getSerializationKey(), new LongArrayTag(e.getValue()));
         }
         ChunkDataCodec.writeHeightmaps(buf, heightmapsTag);
+        //#else
+        //$$ ChunkDataCodec.writeHeightmaps(buf, this.heightmaps);
+        //#endif
 
         // --- Split section buffer into blocks + biomes ---
         FriendlyByteBuf blocksBuf = new FriendlyByteBuf(Unpooled.buffer(this.buffer.length));

@@ -70,7 +70,11 @@ public abstract class ChunkMapDccMixin {
                     }
                 },
                 pos -> {
+                    //#if MC >= 26.1
                     if (player.connection.chunkSender.isPending(pos.pack())) {
+                    //#else
+                    //$$ if (player.connection.chunkSender.isPending(pos.toLong())) {
+                    //#endif
                         krypton$dropChunkNow(player, pos);
                         return;
                     }

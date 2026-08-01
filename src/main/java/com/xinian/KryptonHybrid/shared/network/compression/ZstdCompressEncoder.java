@@ -13,7 +13,11 @@ import com.xinian.KryptonHybrid.shared.network.broadcast.BroadcastSerializationC
 import com.xinian.KryptonHybrid.shared.network.broadcast.BundleEncodeContext;
 import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 import net.minecraft.network.protocol.Packet;
+//#if MC >= 12111
 import net.minecraft.resources.Identifier;
+//#else
+//$$ import net.minecraft.resources.ResourceLocation;
+//#endif
 
 import java.nio.ByteBuffer;
 
@@ -284,11 +288,19 @@ public class ZstdCompressEncoder extends MessageToByteEncoder<ByteBuf> {
 
     private static String kryptonResolveKey(Packet<?> packet) {
         if (packet instanceof ClientboundCustomPayloadPacket cp) {
-            Identifier id = cp.payload().type().id();
+      //#if MC >= 12111
+      Identifier id = cp.payload().type().id();
+      //#else
+      //$$ ResourceLocation id = cp.payload().type().id();
+      //#endif
             return "custom:" + id.getNamespace() + "/" + id.getPath();
         }
         if (packet instanceof ServerboundCustomPayloadPacket sp) {
+//#if MC >= 12111
             Identifier id = sp.payload().type().id();
+            //#else
+            //$$ ResourceLocation id = sp.payload().type().id();
+            //#endif
             return "custom:" + id.getNamespace() + "/" + id.getPath();
         }
         return packet.getClass().getSimpleName();

@@ -1,11 +1,17 @@
 package com.xinian.KryptonHybrid.client.ui;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
+//#if MC >= 26.1
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+//#else
+//$$ import net.minecraft.client.gui.GuiGraphics;
+//#endif
+//#if MC >= 12110
+import net.minecraft.client.input.MouseButtonEvent;
+//#endif
 
 /** Modern web-style themed button (ported from MemoryCatcher). */
 public class MCButton extends AbstractWidget {
@@ -23,8 +29,19 @@ public class MCButton extends AbstractWidget {
         this.onPress = onPress;
     }
 
+    //#if MC >= 26.1
     @Override
     public void extractWidgetRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
+        renderInternal(GfxExtractor.of(g), mouseX, mouseY, partialTick);
+    }
+    //#else
+    //$$ @Override
+    //$$ protected void renderWidget(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    //$$     renderInternal(GfxGui.of(g), mouseX, mouseY, partialTick);
+    //$$ }
+    //#endif
+
+    private void renderInternal(Gfx g, int mouseX, int mouseY, float partialTick) {
         updateAnimations(partialTick);
         var c = UITheme.colors();
         int x = getX(), y = getY(), w = getWidth(), h = getHeight();
@@ -106,8 +123,19 @@ public class MCButton extends AbstractWidget {
             pressAnimation = 0f;
     }
 
+    //#if MC >= 12110
     @Override
     public void onClick(MouseButtonEvent event, boolean doubleClick) {
+        handlePress();
+    }
+    //#else
+    //$$ @Override
+    //$$ public void onClick(double mouseX, double mouseY) {
+    //$$     handlePress();
+    //$$ }
+    //#endif
+
+    private void handlePress() {
         if (this.active) {
             pressAnimation = 1.0f;
             onPress.onPress(this);

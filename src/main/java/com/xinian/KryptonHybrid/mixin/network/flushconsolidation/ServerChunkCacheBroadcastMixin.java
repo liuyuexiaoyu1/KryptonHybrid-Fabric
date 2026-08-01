@@ -56,7 +56,11 @@ public class ServerChunkCacheBroadcastMixin {
      * auto-flush and open a bundle collection window.
      */
     @Inject(
+            //#if MC >= 12102
             method = "broadcastChangedChunks",
+            //#else
+            //$$ method = "tickChunks()V",
+            //#endif
             at = @At(
                     value = "CONSTANT",
                     args = "stringValue=broadcast",
@@ -82,7 +86,7 @@ public class ServerChunkCacheBroadcastMixin {
      * to flush all collected packets and re-enable auto-flush.
      */
     @Inject(
-            method = "tickChunks",
+            method = "tickChunks()V",
             at = @At("RETURN")
     )
     private void krypton$afterBroadcast(CallbackInfo ci) {

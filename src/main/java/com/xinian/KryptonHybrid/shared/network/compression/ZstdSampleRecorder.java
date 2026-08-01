@@ -6,7 +6,11 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
+//#if MC >= 12111
 import net.minecraft.resources.Identifier;
+//#else
+//$$ import net.minecraft.resources.ResourceLocation;
+//#endif
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -167,7 +171,11 @@ public final class ZstdSampleRecorder {
         return sanitize(packet.getClass().getSimpleName());
     }
 
+    //#if MC >= 12111
     private static String sanitizePayloadId(Identifier id) {
+    //#else
+    //$$ private static String sanitizePayloadId(ResourceLocation id) {
+    //#endif
         return sanitize("custom_" + id.getNamespace() + "_" + id.getPath());
     }
 
