@@ -1,6 +1,7 @@
 package com.xinian.KryptonHybrid.client;
 
 import com.xinian.KryptonHybrid.KryptonFabricConfig;
+import com.xinian.KryptonHybrid.client.overlay.KryptonHudOverlay;
 import com.xinian.KryptonHybrid.shared.KryptonSharedBootstrap;
 import com.xinian.KryptonHybrid.shared.network.compression.ZstdUtil;
 import com.xinian.KryptonHybrid.shared.network.handshake.KryptonHelloPayload;
@@ -8,6 +9,12 @@ import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientConfigurationNetworking;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+//#if MC >= 26.1
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.minecraft.resources.Identifier;
+//#else
+//$$ import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+//#endif
 
 public final class KryptonHybridClient implements ClientModInitializer {
     @Override
@@ -23,5 +30,16 @@ public final class KryptonHybridClient implements ClientModInitializer {
                 context.client().execute(() -> KryptonStatsClientController.receiveSnapshot(payload)));
 
         KryptonStatsClientController.init();
+        registerHudOverlay();
+    }
+
+    private static void registerHudOverlay() {
+        //#if MC >= 26.1
+        HudElementRegistry.addLast(
+                Identifier.fromNamespaceAndPath("krypton_hybrid", "stats_hud"),
+                KryptonHudOverlay::extractRenderState);
+        //#else
+        //$$ HudRenderCallback.EVENT.register((guiGraphics, deltaTracker) -> KryptonHudOverlay.render(guiGraphics));
+        //#endif
     }
 }
