@@ -160,6 +160,45 @@ public final class ZstdUtil {
         }
     }
 
+    /**
+     * Returns the currently loaded plain dictionary bytes for transfer to clients,
+     * or {@code null} if no dictionary is loaded / dictionary use is disabled.
+     */
+    public static byte[] getDictionaryBytesForTransfer() {
+        if (!KryptonConfig.zstdDictEnabled || dictionaryBytes == null) {
+            return null;
+        }
+        return dictionaryBytes;
+    }
+
+    /**
+     * Applies a dictionary received from the server (client side).  The dictionary
+     * is written to {@code zstdDictPath} (so it persists for future sessions),
+     * dictionary use is force-enabled (the server is authoritative), and the
+     * compression context is hot-reloaded before compression setup.
+     */
+    public static synchronized void applyReceivedDictionary(byte[] dictBytes) {
+        if (dictBytes == null || dictBytes.length < 64) {
+            return;
+        }
+        KryptonConfig.zstdDictEnabled = true;
+        try {
+            Path path = resolveDictionaryPath(KryptonConfig.zstdDictPath);
+            if (path.getParent() != null) {
+                Files.createDirectories(path.getParent());
+            }
+            Files.write(path, dictBytes);
+        } catch (IOException ioe) {
+            KryptonSharedBootstrap.LOGGER.warn(
+                    "Krypton Zstd: failed to persist server-provided dictionary to {}: {}",
+                    KryptonConfig.zstdDictPath, ioe.getMessage());
+        }
+        reloadDictionary();
+        KryptonSharedBootstrap.LOGGER.info(
+                "Krypton Zstd: applied server-provided dictionary ({} bytes, id={})",
+                dictBytes.length, dictionaryId);
+    }
+
     public static String dictionaryStatusDescription() {
         if (!KryptonConfig.zstdDictEnabled) {
             return "off";

@@ -59,15 +59,22 @@ The config file is located at `config/krypton_hybrid.json` (independent on serve
 
 | Key | Default | Description |
 |---|---|---|
-| `zstdDictEnabled` | `false` | Enable pre-trained `.zdict` dictionary compression (both sides need the same dictionary). |
-| `zstdDictPath` | `config/krypton_hybrid.zdict` | Dictionary file path (relative to the game working directory). |
-| `zstdDictRequired` | `false` | `true` = dictionary load failure is fatal; `false` = fall back to plain Zstd. |
-| `zstdDictTrainingCaptureEnabled` | `false` | Capture real traffic samples for dictionary training. |
+> The dictionary is **fully auto-trained on the server and pushed to clients** (during configuration and PLAY-stage pushes) — no manual dictionary file is needed.
+
+| `zstdDictEnabled` | `true` | Dictionary compression switch (auto-managed: force-enabled and pushed once trained). |
+| `zstdDictPath` | `config/krypton_hybrid.zdict` | Dictionary storage path (auto-managed, no manual config). |
+| `zstdDictTrainingCaptureEnabled` | `true` | Capture outbound traffic samples (required for auto-training, on by default). |
 | `zstdDictTrainingSamplesDir` | `run/krypton_zstd_samples` | Samples output directory. |
 | `zstdDictTrainingMaxSamples` | `12000` | Max samples per JVM session. |
 | `zstdDictTrainingSampleEvery` | `3` | Capture one packet every N packets. |
 | `zstdDictTrainingMinBytes` | `24` | Min serialized sample size. |
 | `zstdDictTrainingMaxBytes` | `262144` | Max serialized sample size. |
+| `zstdDictAutoTrainEnabled` | `true` | Silent auto-training of the dictionary (requires capture enabled). Trains and hot-reloads automatically once enough samples are collected — no command or restart needed. |
+| `zstdDictAutoTrainMinSamples` | `2000` | Min samples before auto-training triggers. |
+| `zstdDictAutoTrainMinBytes` | `8388608` | Min total sample bytes before auto-training triggers (8 MiB). |
+| `zstdDictAutoTrainDictSize` | `65536` | Target dictionary size. |
+| `zstdDictAutoTrainIntervalSec` | `3600` | Cooldown between auto-training runs (seconds; 0 = no cooldown). |
+| `zstdDictAutoTrainClearSamples` | `true` | Clear captured samples after a successful auto-training run. |
 
 > See [docs/zstd-dictionary-training.md](docs/zstd-dictionary-training.md) for the training guide.
 
@@ -185,17 +192,15 @@ Requires operator permission level 2.
 /krypton stats gui           – send a stats snapshot to the client (opens the dashboard)
 /krypton packets bycount [n] – top N packet types by count
 /krypton packets bybytes [n] – top N packet types by bytes
-/krypton packets bywire [n]  – top N packet types by wire bytes
+/krypton packets bywire [n]  – top N packet types by compressed wire bytes
 /krypton mods bycount [n]    – top N mod namespaces by count
 /krypton mods bybytes [n]    – top N mod namespaces by bytes
-/krypton mods bywire [n]     – top N mod namespaces by wire bytes
+/krypton mods bywire [n]     – top N mod namespaces by compressed wire bytes
 /krypton security status     – security metrics snapshot
 /krypton zstd status         – Zstd compression/dictionary status
 /krypton zstd dict reload    – reload the dictionary
 /krypton config reload       – hot-reload the config file
 ```
-
-Client keybinding: **toggle HUD** (unbound by default, configurable in Controls).
 
 ---
 

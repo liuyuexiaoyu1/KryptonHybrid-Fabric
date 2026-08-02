@@ -62,7 +62,8 @@ public record StatsSnapshotPayload(
         long secAnomalyDisconnects,
         long secWritesDropped,
         long secWatermarkBreaches,
-        List<ModEntry> topMods
+        List<ModEntry> topMods,
+        boolean openGui
 ) implements CustomPacketPayload {
 
     /** Maximum number of per-mod entries shipped to the client. */
@@ -128,6 +129,7 @@ public record StatsSnapshotPayload(
                             buf.writeVarLong(e.packets);
                             buf.writeVarLong(e.bytes);
                         }
+                        buf.writeBoolean(p.openGui);
                     },
                     buf -> {
                         long elapsedSeconds = buf.readVarLong();
@@ -177,6 +179,7 @@ public record StatsSnapshotPayload(
                             long by = buf.readVarLong();
                             mods.add(new ModEntry(id, pk, by));
                         }
+                        boolean openGui = buf.readBoolean();
                         return new StatsSnapshotPayload(
                                 elapsedSeconds, packetsSent, packetsReceived,
                                 bytesSentOriginal, bytesSentWire, bytesReceived,
@@ -202,7 +205,8 @@ public record StatsSnapshotPayload(
                                 secAnomalyDisconnects,
                                 secWritesDropped,
                                 secWatermarkBreaches,
-                                mods);
+                                mods,
+                                openGui);
                     }
             );
 
@@ -211,8 +215,17 @@ public record StatsSnapshotPayload(
         return TYPE;
     }
 
-    /** Builds a snapshot from current server-side counters. */
+    /** Builds a snapshot from current server-side counters (does not force-open the GUI). */
     public static StatsSnapshotPayload current() {
+        return current(false);
+    }
+
+    /**
+     * Builds a snapshot from current server-side counters.
+     *
+     * @param openGui whether the client should force-open the stats dashboard on receipt
+     */
+    public static StatsSnapshotPayload current(boolean openGui) {
         NetworkTrafficStats s = NetworkTrafficStats.INSTANCE;
         NetworkTrafficStats.TrafficEntry hottestPacket = s.getTopTypeByBytes();
         NetworkTrafficStats.TrafficEntry hottestMod = s.getTopModByBytes();
@@ -260,7 +273,8 @@ public record StatsSnapshotPayload(
                 sec.getAnomalyDisconnects(),
                 sec.getWritesDropped(),
                 sec.getWatermarkBreaches(),
-                buildTopMods(s)
+                buildTopMods(s),
+                openGui
         );
     }
 

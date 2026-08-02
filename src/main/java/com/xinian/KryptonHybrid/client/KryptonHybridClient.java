@@ -4,6 +4,7 @@ import com.xinian.KryptonHybrid.KryptonFabricConfig;
 import com.xinian.KryptonHybrid.client.overlay.KryptonHudOverlay;
 import com.xinian.KryptonHybrid.shared.KryptonSharedBootstrap;
 import com.xinian.KryptonHybrid.shared.network.compression.ZstdUtil;
+import com.xinian.KryptonHybrid.shared.network.handshake.KryptonDictPayload;
 import com.xinian.KryptonHybrid.shared.network.handshake.KryptonHelloPayload;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
 import net.fabricmc.api.ClientModInitializer;
@@ -25,6 +26,16 @@ public final class KryptonHybridClient implements ClientModInitializer {
 
         ClientConfigurationNetworking.registerGlobalReceiver(KryptonHelloPayload.TYPE, (payload, context) ->
                 context.client().execute(() -> context.responseSender().sendPacket(KryptonHelloPayload.current())));
+
+        // Apply the server's Zstd dictionary before compression is set up
+        ClientConfigurationNetworking.registerGlobalReceiver(KryptonDictPayload.TYPE, (payload, context) ->
+                context.client().execute(() -> ZstdUtil.applyReceivedDictionary(payload.dictionaryBytes())));
+
+        // Auto-train updates pushed to already-connected clients: persist the new
+        // dictionary so reconnects pick it up (the current session keeps its
+        // compression context).
+        ClientPlayNetworking.registerGlobalReceiver(KryptonDictPayload.TYPE, (payload, context) ->
+                context.client().execute(() -> ZstdUtil.applyReceivedDictionary(payload.dictionaryBytes())));
 
         ClientPlayNetworking.registerGlobalReceiver(StatsSnapshotPayload.TYPE, (payload, context) ->
                 context.client().execute(() -> KryptonStatsClientController.receiveSnapshot(payload)));

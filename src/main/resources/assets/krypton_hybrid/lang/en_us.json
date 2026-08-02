@@ -9,10 +9,8 @@
   "command.krypton_hybrid.stats.bundles": "§7Bundles: §a%1$s §7emitted, avg §f%2$s §7sub-pkts | hit §a%3$s%% §7| coalesce dropped §c%4$s",
   "command.krypton_hybrid.stats.reset": "Krypton Hybrid network statistics have been reset.",
   "command.krypton_hybrid.stats.gui_sent": "Stats GUI snapshot sent. Open it on the client to view.",
-
   "command.krypton_hybrid.sort.count": "Count",
   "command.krypton_hybrid.sort.bytes": "Bytes",
-
   "command.krypton_hybrid.packets.header": "=== Krypton Hybrid Packet Types (Top %1$s by %2$s | %3$s types tracked) ===",
   "command.krypton_hybrid.packets.row": "§8#%1$s §r%2$s §a%3$s§7 pkt §2(%4$s%%)§b %5$s §3(%6$s%%)§7  avg §f%7$s B",
   "command.krypton_hybrid.mods.header": "=== Krypton Hybrid Mod Traffic (Top %1$s by %2$s | %3$s mods) ===",
@@ -23,7 +21,6 @@
   "command.krypton_hybrid.mods.wire.header": "Krypton mods by compressed wire bytes (top %1$s)",
   "command.krypton_hybrid.mods.wire.row": "%1$s %2$s count=%3$s wire=%4$s %5$s%%",
   "command.krypton_hybrid.list.total.wire": "Total: %1$s packets, %2$s",
-
   "command.krypton_hybrid.security.header": "§l=== Krypton Security Status ===",
   "command.krypton_hybrid.security.enabled": "§7Security: %1$s",
   "command.krypton_hybrid.security.state.on": "ENABLED",
@@ -42,7 +39,6 @@
   "command.krypton_hybrid.security.anomaly_events": "§7Anomaly events: §e%1$s",
   "command.krypton_hybrid.security.writes_dropped": "§7Writes dropped: §e%1$s",
   "command.krypton_hybrid.security.watermark_breaches": "§7Watermark breaches: §e%1$s",
-
   "gui.krypton_hybrid.stats.title": "Krypton Hybrid Statistics",
   "gui.krypton_hybrid.subtitle": "Live network, compression, and traffic statistics",
   "gui.krypton_hybrid.section.network": "Network",
@@ -197,8 +193,5 @@
   "hud.krypton_hybrid.tx": "TX %1$s/s",
   "hud.krypton_hybrid.rx": "RX %1$s/s",
   "hud.krypton_hybrid.saved": "Saved %1$s",
-  "hud.krypton_hybrid.top_mod": "▶ %1$s",
-  "key.krypton_hybrid.open_stats": "Open Krypton Stats Dashboard",
-  "key.krypton_hybrid.toggle_hud": "Toggle Krypton HUD",
-  "key.categories.krypton_hybrid": "Krypton Hybrid"
+  "hud.krypton_hybrid.top_mod": "▶ %1$s"
 }

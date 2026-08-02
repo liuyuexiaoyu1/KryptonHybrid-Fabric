@@ -9,10 +9,8 @@
   "command.krypton_hybrid.stats.bundles": "§7聚合包: 已发出 §a%1$s§7,平均 §f%2$s§7 子包 | 命中率 §a%3$s%% §7| 合并丢弃 §c%4$s",
   "command.krypton_hybrid.stats.reset": "Krypton Hybrid 网络统计已重置。",
   "command.krypton_hybrid.stats.gui_sent": "已发送统计快照,请在客户端查看 GUI。",
-
   "command.krypton_hybrid.sort.count": "包数",
   "command.krypton_hybrid.sort.bytes": "字节",
-
   "command.krypton_hybrid.packets.header": "=== Krypton Hybrid 包类型 (按 %2$s 排序前 %1$s 项 | 共追踪 %3$s 类) ===",
   "command.krypton_hybrid.packets.row": "§8#%1$s §r%2$s §a%3$s§7 包 §2(%4$s%%)§b %5$s §3(%6$s%%)§7  平均 §f%7$s B",
   "command.krypton_hybrid.mods.header": "=== Krypton Hybrid 模组流量 (按 %2$s 排序前 %1$s 项 | 共 %3$s 个模组) ===",
@@ -23,7 +21,6 @@
   "command.krypton_hybrid.mods.wire.header": "Krypton 模组 (按压缩后链路字节排序前 %1$s 项)",
   "command.krypton_hybrid.mods.wire.row": "%1$s %2$s 包数=%3$s 链路=%4$s %5$s%%",
   "command.krypton_hybrid.list.total.wire": "合计: %1$s 包, %2$s",
-
   "command.krypton_hybrid.security.header": "§l=== Krypton 安全状态 ===",
   "command.krypton_hybrid.security.enabled": "§7安全防护: %1$s",
   "command.krypton_hybrid.security.state.on": "已启用",
@@ -42,7 +39,6 @@
   "command.krypton_hybrid.security.anomaly_events": "§7异常事件: §e%1$s",
   "command.krypton_hybrid.security.writes_dropped": "§7写入丢弃: §e%1$s",
   "command.krypton_hybrid.security.watermark_breaches": "§7水位线突破: §e%1$s",
-
   "gui.krypton_hybrid.stats.title": "Krypton Hybrid 统计信息",
   "gui.krypton_hybrid.subtitle": "实时网络、压缩与流量统计",
   "gui.krypton_hybrid.section.network": "网络",
@@ -197,9 +193,5 @@
   "hud.krypton_hybrid.tx": "发送 %1$s/s",
   "hud.krypton_hybrid.rx": "接收 %1$s/s",
   "hud.krypton_hybrid.saved": "已节省 %1$s",
-  "hud.krypton_hybrid.top_mod": "▶ %1$s",
-  "key.krypton_hybrid.open_stats": "打开 Krypton 统计仪表盘",
-  "key.krypton_hybrid.toggle_hud": "切换 Krypton HUD",
-  "key.categories.krypton_hybrid": "Krypton Hybrid"
+  "hud.krypton_hybrid.top_mod": "▶ %1$s"
 }
-

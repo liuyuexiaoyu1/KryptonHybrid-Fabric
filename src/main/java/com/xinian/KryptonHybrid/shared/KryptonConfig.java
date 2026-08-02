@@ -86,27 +86,36 @@ public final class KryptonConfig {
      * bytes before processing packets. This improves ratio for repetitive packet families
      * (chunk/light/entity deltas and frequent custom payload templates), especially at
      * low compression levels.</p>
+     *
+     * <p>The dictionary is managed automatically: the server trains it from captured
+     * outbound traffic ({@link #zstdDictAutoTrainEnabled}) and pushes it to clients.
+     * No manual dictionary file is required. On the server, dictionary use is
+     * force-enabled once the first dictionary has been trained.</p>
      */
-    public static volatile boolean zstdDictEnabled = false;
+    public static volatile boolean zstdDictEnabled = true;
 
     /**
-     * Path to the pre-trained Zstd dictionary file (.zdict).
-     * Relative paths are resolved from the game working directory.
+     * Internal path where the auto-trained Zstd dictionary is stored.
+     * Managed automatically by the server; clients persist the server-provided
+     * dictionary here as well. Not meant to be edited manually.
      */
     public static volatile String zstdDictPath = "config/krypton_hybrid.zdict";
 
     /**
      * If true, dictionary load failure is fatal for Zstd context creation.
      * If false, Krypton logs a warning and falls back to plain Zstd.
+     * With auto-training this should stay {@code false}: before the first dictionary
+     * is trained there is nothing to load yet.
      */
     public static volatile boolean zstdDictRequired = false;
 
     /**
-     * Captures serialized packet bytes before Zstd compression so administrators can
-     * train a representative dictionary from real server traffic. Disabled by default
-     * because it writes packet samples to disk and copies packet bytes.
+     * Captures serialized packet bytes before Zstd compression so the server can
+     * auto-train a representative dictionary from real outbound traffic.
+     * Required by {@link #zstdDictAutoTrainEnabled}. Enabled by default so the
+     * whole dictionary pipeline is zero-configuration.
      */
-    public static volatile boolean zstdDictTrainingCaptureEnabled = false;
+    public static volatile boolean zstdDictTrainingCaptureEnabled = true;
 
     /** Directory where dictionary-training packet samples are written. */
     public static volatile String zstdDictTrainingSamplesDir = "run/krypton_zstd_samples";
@@ -122,6 +131,34 @@ public final class KryptonConfig {
 
     /** Maximum serialized packet size accepted by the sample recorder. */
     public static volatile int zstdDictTrainingMaxBytes = 256 * 1024;
+
+    /**
+     * Silent auto-training of the Zstd dictionary from captured outbound traffic.
+     * When enabled (together with {@link #zstdDictTrainingCaptureEnabled}), the server
+     * periodically checks the captured samples and, once enough data is collected,
+     * trains a new dictionary in the background, writes it to {@link #zstdDictPath}
+     * and hot-reloads it — no command or restart needed.
+     */
+    public static volatile boolean zstdDictAutoTrainEnabled = true;
+
+    /** Minimum number of captured samples before auto-training triggers. */
+    public static volatile int zstdDictAutoTrainMinSamples = 2000;
+
+    /** Minimum total captured sample bytes before auto-training triggers. */
+    public static volatile int zstdDictAutoTrainMinBytes = 8 * 1024 * 1024;
+
+    /** Target dictionary size in bytes for auto-training. */
+    public static volatile int zstdDictAutoTrainDictSize = 65536;
+
+    /** Cooldown between auto-training runs (seconds); 0 disables the cooldown. */
+    public static volatile int zstdDictAutoTrainIntervalSec = 3600;
+
+    /**
+     * Whether captured samples are deleted after a successful auto-training run.
+     * Default {@code false}: samples keep accumulating across cycles, so each
+     * retraining pass uses more data and produces a better dictionary over time.
+     */
+    public static volatile boolean zstdDictAutoTrainClearSamples = false;
 
     // --- Network security / independent packet control ---
 

@@ -57,15 +57,23 @@
 
 | 配置项 | 默认值 | 说明 |
 |---|---|---|
-| `zstdDictEnabled` | `false` | 启用预训练 `.zdict` 字典压缩（双端需同一字典）。 |
-| `zstdDictPath` | `config/krypton_hybrid.zdict` | 字典文件路径（相对游戏工作目录）。 |
-| `zstdDictRequired` | `false` | `true` 时字典加载失败将致命；`false` 时回退为普通 Zstd。 |
-| `zstdDictTrainingCaptureEnabled` | `false` | 捕获真实流量样本用于训练字典。 |
+> 字典**完全由服务端自动训练并推送给客户端**（配置阶段 + PLAY 阶段推送），无需手动准备字典文件。
+> *The dictionary is fully auto-trained on the server and pushed to clients — no manual dictionary file is needed.*
+
+| `zstdDictEnabled` | `true` | 字典压缩开关（自动管理：训练完成后服务端自动启用并推送）。 |
+| `zstdDictPath` | `config/krypton_hybrid.zdict` | 字典存储路径（自动管理，无需手动配置）。 |
+| `zstdDictTrainingCaptureEnabled` | `true` | 捕获出口流量样本（自动训练前提，默认开启）。 |
 | `zstdDictTrainingSamplesDir` | `run/krypton_zstd_samples` | 样本输出目录。 |
 | `zstdDictTrainingMaxSamples` | `12000` | 单次 JVM 会话最大样本数。 |
 | `zstdDictTrainingSampleEvery` | `3` | 每 N 个包捕获一个。 |
 | `zstdDictTrainingMinBytes` | `24` | 样本最小序列化字节数。 |
 | `zstdDictTrainingMaxBytes` | `262144` | 样本最大序列化字节数。 |
+| `zstdDictAutoTrainEnabled` | `true` | 静默自动训练字典（需同时开启捕获）。达到样本阈值后自动训练并热加载，无需命令或重启。 |
+| `zstdDictAutoTrainMinSamples` | `2000` | 触发自动训练的最小样本数。 |
+| `zstdDictAutoTrainMinBytes` | `8388608` | 触发自动训练的最小总字节数（8 MiB）。 |
+| `zstdDictAutoTrainDictSize` | `65536` | 自动训练的目标字典大小。 |
+| `zstdDictAutoTrainIntervalSec` | `3600` | 两次自动训练的最小间隔（秒，0 = 无冷却）。 |
+| `zstdDictAutoTrainClearSamples` | `true` | 自动训练成功后清空样本。 |
 
 > 训练指南见 [docs/zstd-dictionary-training.md](docs/zstd-dictionary-training.md)。
 
@@ -183,17 +191,15 @@
 /krypton stats gui           – 向客户端发送统计快照（打开仪表盘）
 /krypton packets bycount [n] – 按数量统计 Top N 包类型
 /krypton packets bybytes [n] – 按字节统计 Top N 包类型
-/krypton packets bywire [n]  – 按线上字节统计 Top N 包类型
+/krypton packets bywire [n]  – 按压缩后链路字节统计 Top N 包类型
 /krypton mods bycount [n]    – 按数量统计 Top N 模组
 /krypton mods bybytes [n]    – 按字节统计 Top N 模组
-/krypton mods bywire [n]     – 按线上字节统计 Top N 模组
+/krypton mods bywire [n]     – 按压缩后链路字节统计 Top N 模组
 /krypton security status     – 安全指标快照
 /krypton zstd status         – Zstd 压缩/字典状态
 /krypton zstd dict reload    – 重载字典
 /krypton config reload       – 热重载配置文件
 ```
-
-客户端按键：**切换 HUD**（默认无绑定，可在按键设置中配置）。
 
 ---
 

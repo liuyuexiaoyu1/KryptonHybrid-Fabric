@@ -136,7 +136,8 @@ public final class KryptonStatsCommand {
 
     private static int executeGui(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
-        StatsSnapshotPayload snap = StatsSnapshotPayload.current();
+        // openGui=true forces the client to open the dashboard even when the HUD overlay is on
+        StatsSnapshotPayload snap = StatsSnapshotPayload.current(true);
         ServerPlayNetworking.send(player, snap);
         return 1;
     }
