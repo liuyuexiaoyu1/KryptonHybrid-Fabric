@@ -1,244 +1,283 @@
-Krypton Hybrid
-====
-[![](https://badges.moddingx.org/curseforge/downloads/1474749)](https://www.curseforge.com/minecraft/mc-mods/krypton-hybrid)
+# Krypton Hybrid
+
 [![License: LGPL-3.0](https://img.shields.io/badge/License-LGPL--3.0-blue.svg)](LICENSE)
 
-[![curseforge](https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/curseforge_vector.svg)](https://www.curseforge.com/minecraft/mc-mods/krypton-hybrid)
-[![github](https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/github_vector.svg)](https://github.com/dreamforSh/KryptonHybrid)
+[![github](https://cdn.jsdelivr.net/npm/@intergrav/devins-badges@3/assets/cozy/available/github_vector.svg)](https://github.com/liuyuexiaoyu1/KryptonHybrid)
 
-## Overview
-Krypton Hybrid is a fork based on [Krypton fnp](https://github.com/404Setup/KryptonFNP) legacy（1.19.2),Completed the missing optimizations in the Krypton fnp lite version, added support for the zstd compression algorithm, and made improvements to the original encoding and Netty program processing.while retaining the features of [Krypton fnp](https://github.com/404Setup/KryptonFNP) and RecastLib.
+**中文** | [English](README_en.md)
 
-## Differentiation
-1. Compatibility support for hybrid servers is offered.
+---
 
-2. Commands are provided to monitor traffic usage and security status.
+## 简介
 
-3. This project prioritizes using zstd as the primary compression algorithm, while also providing optimizations for entity tracking and communication encoding from the original version.
+**Krypton Hybrid** 是基于 [Krypton fnp](https://github.com/404Setup/KryptonFNP) legacy（1.19.2）的 fork。补全了 Krypton fnp lite 版本缺失的优化，新增 **zstd 压缩算法**支持，并对原始编码与 Netty 处理流程做了改进，同时保留了 [Krypton fnp](https://github.com/404Setup/KryptonFNP) 与 RecastLib 的特性。
 
-4. Built-in network security and DDoS protection layer — connection rate limiting, stage-aware timeouts, packet size and payload validation, anomaly detection, and Netty resource protection.
+### 主要特性
 
-## Technical Details
+1. **混合服务器兼容** —— 提供混合服务器（hybrid server）的兼容支持。
 
-### 1. Network Compression Pipeline
+2. **流量监控命令** —— 提供命令监控流量使用与安全状态。
 
-Krypton Hybrid replaces Minecraft's default zlib codec by injecting into `Connection.setupCompression`.
+3. **zstd 优先压缩** —— 以 zstd 为主要压缩算法，同时保留原版的实体追踪与通信编码优化。
 
+4. **内置网络安全层** —— 连接限速、分阶段超时、包大小与载荷校验、异常检测、Netty 资源保护（DDoS 防护）。
 
-| Feature | Detail |
+---
+
+## 安装
+
+- **服务端与客户端都必须安装本 mod**（自定义压缩/区块格式需要双端协商）。
+- 支持的 Minecraft 版本：**1.21.1 ~ 26.2**（Fabric + Fabric API）。
+- 将 jar 放入 `mods/` 目录即可。
+
+> ⚠️ **压缩算法必须双端一致**，不一致会立即损坏会话。
+
+---
+
+## 配置
+
+配置文件位于 `config/krypton_hybrid.json`（服务端/客户端各自独立）。修改后使用 `/krypton config reload` 热重载。
+
+### 1. 压缩
+
+| 配置项 | 默认值 | 说明 |
+|---|---|---|
+| `compressionAlgorithm` | `ZSTD` | 压缩算法：`ZSTD` 或 `ZLIB`。 |
+| `zstdLevel` | `3` | Zstd 压缩级别，范围 [1, 22]。级别越高压缩率越好、CPU 开销越大。 |
+| `zstdAdaptiveLargeLevel` | `0` | 大包（如区块数据）自适应压缩级别。`0` 关闭自适应。 |
+| `zstdAdaptiveLargeThreshold` | `8192` | 超过该字节数使用自适应高级别。 |
+| `zstdWorkers` | `0` | 多线程压缩线程数，`≥1` 启用原生线程池。 |
+| `zstdOverlapLog` | `0` | 重叠日志（overlap log）调优参数。 |
+| `zstdJobSize` | `0` | 任务大小调优参数。 |
+| `zstdEnableLDM` | `false` | 启用长距离匹配（Long Distance Matching）。 |
+| `zstdLongDistanceWindowLog` | `27` | LDM 窗口大小日志。 |
+| `zstdStrategy` | `0` | 压缩策略（`0=default, 1=fast, 2=dfast, ...`）。 |
+
+### 2. Zstd 字典
+
+| 配置项 | 默认值 | 说明 |
+|---|---|---|
+| `zstdDictEnabled` | `false` | 启用预训练 `.zdict` 字典压缩（双端需同一字典）。 |
+| `zstdDictPath` | `config/krypton_hybrid.zdict` | 字典文件路径（相对游戏工作目录）。 |
+| `zstdDictRequired` | `false` | `true` 时字典加载失败将致命；`false` 时回退为普通 Zstd。 |
+| `zstdDictTrainingCaptureEnabled` | `false` | 捕获真实流量样本用于训练字典。 |
+| `zstdDictTrainingSamplesDir` | `run/krypton_zstd_samples` | 样本输出目录。 |
+| `zstdDictTrainingMaxSamples` | `12000` | 单次 JVM 会话最大样本数。 |
+| `zstdDictTrainingSampleEvery` | `3` | 每 N 个包捕获一个。 |
+| `zstdDictTrainingMinBytes` | `24` | 样本最小序列化字节数。 |
+| `zstdDictTrainingMaxBytes` | `262144` | 样本最大序列化字节数。 |
+
+> 训练指南见 [docs/zstd-dictionary-training.md](docs/zstd-dictionary-training.md)。
+
+### 3. 网络安全
+
+| 配置项 | 默认值 | 说明 |
+|---|---|---|
+| `securityEnabled` | `true` | 安全层总开关。 |
+| `securityConnectionRatePerSecond` | `8` | 每 IP 每秒持续连接数上限。 |
+| `securityConnectionBurstLimit` | `20` | 每 IP 连接突发上限。 |
+| `securityConnectionQuarantineSeconds` | `30` | 滥用地址的隔离秒数。 |
+| `securityRapidReconnectWindowMs` | `1500` | 快速重连检测窗口。 |
+| `securityRapidReconnectPenalty` | `4` | 快速重连消耗的额外令牌。 |
+| `securityMaxDecompressedBytes` | `16777216` | 解压后最大载荷（16 MiB）。 |
+| `securityMaxCompressionRatio` | `100` | 最大压缩比，超限拒绝解压。 |
+| `securityMinCompressedBytesForRatioCheck` | `256` | 压缩比检查的最小压缩字节数。 |
+| `securityHandshakeTimeoutSec` | `5` | 握手阶段读取超时。 |
+| `securityLoginTimeoutSec` | `10` | 登录阶段超时。 |
+| `securityPlayTimeoutSec` | `30` | 游戏阶段超时。 |
+| `securityMaxPacketBytes` | `2097152` | 分包后最大解码帧（2 MiB）。 |
+| `securityMaxCustomPayloadBytes` | `131072` | 自定义载荷最大字节数。 |
+| `securityReadLimitsEnabled` | `false` | FriendlyByteBuf 读取侧防护（默认关闭以兼容）。 |
+| `securityMaxStringChars` | `32767` | 解码字符串最大字符数。 |
+| `securityMaxCollectionElements` | `16384` | 解码集合最大元素数。 |
+| `securityMaxMapEntries` | `8192` | 解码 Map 最大条目数。 |
+| `securityMaxCountedElements` | `16384` | readWithCount 载荷最大循环数。 |
+| `securityMaxByteArrayBytes` | `2097152` | 解码 byte[] 最大长度。 |
+| `securityAnomalyStrikeThreshold` | `10` | 加权异常积分阈值，超限强制断开。 |
+| `securityWriteWatermarkLow` | `524288` | Netty 写缓冲低水位（512 KiB）。 |
+| `securityWriteWatermarkHigh` | `2097152` | Netty 写缓冲高水位（2 MiB）。 |
+| `securityMaxPendingWrites` | `4096` | 挂起写入队列上限。 |
+| `securityMaxUnwritableSeconds` | `15` | 通道长时间不可写的强制断开秒数。 |
+| `securityMinProtocolVersion` | `3` | 握手最低协议版本。 |
+| `securityMaxProtocolVersion` | `1100` | 握手最高协议版本。 |
+| `securityMaxHandshakeAddressLength` | `255` | 握手地址最大长度。 |
+| `motdCacheEnabled` | `true` | 缓存 MOTD/状态响应。 |
+| `motdCacheTtlMs` | `3000` | MOTD 缓存有效期（0 = 关闭）。 |
+| `securityStatusPingGuardEnabled` | `true` | 现代 STATUS ping 独立限速。 |
+| `securityStatusPingRatePerSecond` | `4` | 状态 ping 每秒上限。 |
+| `securityStatusPingBurstLimit` | `8` | 状态 ping 突发上限。 |
+| `securityStatusPingQuarantineSeconds` | `15` | 状态 ping 滥用隔离秒数。 |
+| `securityStatusPingSilentDrop` | `true` | 静默关闭超限连接（不发送断开包）。 |
+| `securityLegacyQueryGuardEnabled` | `true` | 旧版（1.7 前）legacy ping 同样防护。 |
+
+### 4. 区块优化
+
+| 配置项 | 默认值 | 说明 |
+|---|---|---|
+| `chunkOptEnabled` | `true` | 区块数据优化：生物群系增量编码 + 高度图 XOR 差分二进制压缩。 |
+| `lightOptEnabled` | `true` | 光照数据 Uniform-RLE 压缩（天空光全亮层 2048B → 2B）。 |
+| `blockEntityDeltaEnabled` | `true` | 方块实体 NBT 增量编码（只发送变化的键，双端需都装本 mod）。 |
+
+### 5. 延迟区块缓存（DCC）
+
+| 配置项 | 默认值 | 说明 |
+|---|---|---|
+| `dccEnabled` | `true` | DCC 总开关。 |
+| `dccSizeLimit` | `60` | 每玩家最大缓存区块数。 |
+| `dccDistance` | `5` | 玩家周围缓存半径（区块）。 |
+| `dccTimeoutSeconds` | `30` | 缓存强制过期秒数。 |
+
+离开视野的区块先缓存，玩家在过期前回来则**跳过重发**。
+
+### 6. 广播缓存
+
+| 配置项 | 默认值 | 说明 |
+|---|---|---|
+| `broadcastCacheEnabled` | `true` | 广播序列化缓存：同一 Packet 实例多玩家广播时复用序列化字节。 |
+| `broadcastCompressedCacheEnabled` | `true` | 压缩后字节缓存（区块/光照包）。 |
+
+### 7. Bundle 打包
+
+| 配置项 | 默认值 | 说明 |
+|---|---|---|
+| `bundleAlwaysCompress` | `true` | Bundle 子包即使小于压缩阈值也强制压缩。 |
+| `bundleCompressMinBytes` | `24` | Bundle 子包强制压缩的最小字节数。 |
+
+### 8. 微批 flush
+
+| 配置项 | 默认值 | 说明 |
+|---|---|---|
+| `microBatchFlushEnabled` | `false` | 用延迟通道 flush 替代每 tick 立即 flush，跨 tick 合并写入。 |
+| `microBatchFlushDelayMs` | `5` | 延迟 flush 毫秒数（1-20，建议 5）。 |
+
+### 9. 运动过滤
+
+| 配置项 | 默认值 | 说明 |
+|---|---|---|
+| `motionDeltaEnabled` | `true` | 过滤变化小于阈值的运动/传送更新包。 |
+| `motionDeltaThreshold` | `40` | 每轴编码容差（80 单位 ≈ 0.01 格/tick，默认 40 ≈ 0.005 格/tick）。 |
+| `teleportDeltaSquared` | `1.0E-4` | 传送距离平方容差（0.01 格半径）。 |
+
+### 10. 包合并
+
+| 配置项 | 默认值 | 说明 |
+|---|---|---|
+| `packetCoalescingEnabled` | `true` | 实体追踪 tick 内去重冗余包（速度/传送/实体数据/头部旋转/方块实体）。 |
+
+### 11. 代理转发
+
+| 配置项 | 默认值 | 说明 |
+|---|---|---|
+| `proxyMode` | `NONE` | 代理模式：`NONE` / `VELOCITY`（现代转发）。 |
+| `velocityForwardingSecret` | `""` | Velocity 转发密钥（与 proxy 配置一致）。 |
+
+---
+
+## 命令
+
+需要权限等级 2。
+
+```
+/krypton stats show          – 压缩率、带宽节省、运行时长
+/krypton stats reset         – 重置计数器
+/krypton stats gui           – 向客户端发送统计快照（打开仪表盘）
+/krypton packets bycount [n] – 按数量统计 Top N 包类型
+/krypton packets bybytes [n] – 按字节统计 Top N 包类型
+/krypton packets bywire [n]  – 按线上字节统计 Top N 包类型
+/krypton mods bycount [n]    – 按数量统计 Top N 模组
+/krypton mods bybytes [n]    – 按字节统计 Top N 模组
+/krypton mods bywire [n]     – 按线上字节统计 Top N 模组
+/krypton security status     – 安全指标快照
+/krypton zstd status         – Zstd 压缩/字典状态
+/krypton zstd dict reload    – 重载字典
+/krypton config reload       – 热重载配置文件
+```
+
+客户端按键：**切换 HUD**（默认无绑定，可在按键设置中配置）。
+
+---
+
+## 技术细节
+
+### 1. 网络压缩管线
+
+Krypton Hybrid 通过注入 `Connection.setupCompression` 替换 Minecraft 默认 zlib 编解码器。
+
+| 特性 | 详情 |
 |---|---|
-| Primary algorithm | Zstd via `zstd-jni` (native) |
-| Fallback algorithm | zlib via `velocity-native` |
-| Level range | 1 – 22 (default 3) |
-| Multi-threaded | `workers` ≥ 1 activates native thread pool |
-| Dictionary | Optional `.zdict` pre-trained file, fail-open or fail-fast. See [Zstd dictionary training guide](docs/zstd-dictionary-training.md). |
-| Advanced tuning | `overlap_log`, `job_size`, `strategy`, `LDM` + `window_log` |
+| 主算法 | Zstd（`zstd-jni` 原生） |
+| 备选算法 | zlib（`velocity-native`） |
+| 级别范围 | 1 – 22（默认 3） |
+| 多线程 | `workers ≥ 1` 启用原生线程池 |
+| 字典 | 可选 `.zdict` 预训练文件，fail-open 或 fail-fast |
 
-> **Both server and client must use the same algorithm.** A mismatch corrupts the session immediately.
+### 2. 光照优化（Uniform-RLE）
 
----
+天空光照层几乎总是统一值（`0xFF`）。Krypton 将每层 2048 字节编码为 2 字节（`[0x01] + 1 byte`）。开阔天空下每个区块最多节省约 40 KB。
 
-### 2. Light Payload Optimization — Uniform-RLE
+### 3. 区块数据优化
 
-Sky-light sections above the surface are almost always uniform (`0xFF` = all-15). Instead of writing 2 048 bytes per uniform layer, Krypton encodes them as 2 bytes.
+- **高度图**：XOR 差分 + ZigZag VarLong（相邻列相关 → 大量近零值）
+- **生物群系流**：单值区块 2 字节（原 3+ 字节），多值区块分组连续
 
-**Wire format** (`ClientboundLightUpdatePacketData`):
-
-```
-[0x4B]            – Krypton marker (1 byte)
-[skyYMask]        – BitSet
-[blockYMask]      – BitSet
-[emptySkyYMask]   – BitSet
-[emptyBlockYMask] – BitSet
-[skyCount]        – VarInt
-For each sky DataLayer:
-  [0x01] + 1 byte     – uniform (all nibbles == byte)
-  [0x00] + 2048 bytes – raw    (fixed size, no VarInt prefix)
-[blockCount]      – VarInt
-For each block DataLayer: same as above
-```
-
-**Savings guard:** only activates when `2048 × uniform_count + raw_count − 1 > 0`.
-**Max saving:** ~40 KB per chunk in open-sky environments (view-distance 12 → up to 20 uniform sky layers).
-
----
-
-### 3. Chunk Data Optimization — XOR-Delta Heightmaps + Biome Stream
-
-**Wire format** (`ClientboundLevelChunkPacketData`):
-
-```
-[0x4B]            – Krypton chunk-data marker (1 byte)
-
-──── Heightmaps (binary + XOR-delta) ────
-VarInt  entry_count
-Per entry:
-  UTF-8  key
-  VarInt long_count
-  long[] XOR-delta encoded  (delta[i] = raw[i] ^ raw[i-1])
-
-──── Block data (sections without biomes) ────
-VarInt  blocks_length
-byte[]  blocks  (short nonEmptyCount + PalettedContainer<BlockState> per section)
-
-──── Biome data (compact stream) ────
-VarInt  section_count
-Per section:
-  0x01 + VarInt(biomeId)          – single-value section (2 bytes vs. 3+)
-  0x00 + VarInt(len) + raw bytes  – multi-value section
-
-──── Block entities ────
-LIST_STREAM_CODEC (unchanged vanilla encoding)
-```
-
-| Optimization | Mechanism | Benefit |
-|---|---|---|
-| XOR-delta heightmaps | Adjacent columns correlate → many near-zero longs | Better Zstd/zlib ratio + ~40 B NBT overhead eliminated |
-| Biome stream split | Biome data grouped; single-value sections compacted | Single-value: 2 B vs. 3+ B; cross-section redundancy exploited |
-
----
-
-### 4. Delayed Chunk Cache (DCC)
-
-Departing chunks are **buffered** instead of immediately dropped. If the player re-enters range before the entry expires, the full resend is skipped.
-
-| Config key | Default | Description |
-|---|---|---|
-| `dcc.enabled` | `true` | Master switch |
-| `dcc.size_limit` | 60 | Max buffered chunks per player |
-| `dcc.distance` | 5 | Cache radius around player position (chunks) |
-| `dcc.timeout_seconds` | 30 | Forced eviction timeout |
-
-Eviction occurs on three dimensions: **distance**, **capacity**, and **timeout**. Evicted entries trigger deferred `dropChunk` callbacks on the next `ChunkMap.tick()`.
-
----
-
-### 5. Flush Consolidation + Entity Packet Bundling
-
-Two complementary layers reduce syscall and framing overhead during the entity tracking tick:
+### 4. flush 合并 + 实体包打包
 
 ```
 ChunkMap.tick() HEAD
-  ① Recovery: flush any stale batch from previous failed tick
-  ② Disable auto-flush for all players
-  ③ Open EntityBundleCollector batch window
+  ① 恢复清理（异常恢复）
+  ② 禁用所有玩家 auto-flush
+  ③ 打开 EntityBundleCollector 收集窗口
 
-  ↳ TrackedEntity.broadcast() → packets collected per player
+  ↳ TrackedEntity 发包 → 按玩家收集
 
 ChunkMap.tick() RETURN
-  ④ Close batch → emit ClientboundBundlePackets (buffered, not yet flushed)
-  ⑤ Re-enable auto-flush → single kernel flush per player
+  ④ 关闭窗口 → 发出 ClientboundBundlePacket（缓冲未 flush）
+  ⑤ 重新启用 auto-flush → 每玩家一次内核 flush
 ```
 
-| Layer | Mechanism | Benefit |
+| 层 | 机制 | 收益 |
 |---|---|---|
-| Flush consolidation (Netty) | Buffer writes, one `flush()` at end of tick | Fewer syscalls on busy servers |
-| Bundle coalescing (protocol) | N entity packets → 1 `ClientboundBundlePacket` | Reduced framing overhead; better compression ratio; client-side atomicity |
+| Flush 合并（Netty） | 缓冲写入，tick 末尾一次 `flush()` | 繁忙服务器减少 syscall |
+| Bundle 合并（协议） | N 个实体包 → 1 个 `ClientboundBundlePacket` | 减少帧开销、提高压缩率、客户端原子应用 |
 
----
+### 5. 热路径微优化
 
-### 6. Hot-Path Micro-Optimizations
-
-| Target | Optimization |
+| 目标 | 优化 |
 |---|---|
-| `VarInt.read()` | Branchless 4-byte `getIntLE` + bit-twiddling fast path (covers values 0 – 268 M) |
-| `VarInt.getByteSize()` | Lookup-table via `Integer.numberOfLeadingZeros` |
-| `VarLong.getByteSize()` | Same lookup-table approach |
-| `FriendlyByteBuf.writeVarInt()` | Peeled 1/2/3/4/5-byte paths, writes directly to backing `ByteBuf` |
-| `FriendlyByteBuf.writeUtf()` | Single-pass via `ByteBufUtil.utf8Bytes` — no intermediate `byte[]` |
-| `Varint21FrameDecoder` | Velocity-derived efficient framing + nullping attack mitigation |
+| `VarInt.read()` | 无分支 4 字节 `getIntLE` 快路径 |
+| `VarInt/VarLong.getByteSize()` | `numberOfLeadingZeros` 查找表 |
+| `FriendlyByteBuf.writeVarInt()` | 剥离 1/2/3/4/5 字节路径 |
+| `FriendlyByteBuf.writeUtf()` | 单趟 `ByteBufUtil.utf8Bytes` |
+| `Varint21FrameDecoder` | Velocity 衍生高效组帧 + nullping 缓解 |
 
 ---
 
-### 7. Observability — `/krypton` Commands
+## 多版本构建
 
-```
-/krypton stats show          – compression ratio, bandwidth saving, uptime
-/krypton stats reset         – reset all counters
-/krypton packets bycount [n] – top N packet types by count
-/krypton packets bybytes [n] – top N packet types by bytes
-/krypton mods bycount [n]    – top N mod namespaces by count
-/krypton mods bybytes [n]    – top N mod namespaces by bytes
-/krypton security status     – security metrics snapshot (rate limits, validation, anomalies, etc.)
-```
+支持 1.21.1 ~ 26.2（`settings.json` 定义版本列表），使用 [Fallen-Breath preprocessor](https://github.com/Fallen-Breath/preprocessor) 条件编译：
 
-Requires operator permission level 2.
+```bash
+# 构建全部版本
+./gradlew preprocessResources preprocessCode build
+
+# 构建指定版本
+./gradlew :26.2:build
+
+# mixin 注入审计（服务器）
+./gradlew runServerMixinAudit
+```
 
 ---
 
-### 8. Network Security & DDoS Protection
+## 测试数据
 
-Krypton Hybrid includes a comprehensive, configurable network security layer injected directly into the Netty pipeline. All features are gated behind a single `security.enabled` toggle and can be fine-tuned via the `[security]` section in `krypton_hybrid-common.toml`.
-
-#### Netty Pipeline (Security Handlers)
-
-```
-[Socket]
-  → krypton_rate_limiter      Per-IP sliding-window connection rate limiter
-  → krypton_timeout           Stage-aware read timeout (HANDSHAKE → LOGIN → PLAY)
-  → timeout (vanilla)
-  → legacy_query (vanilla)
-  → splitter (Varint21)
-  → krypton_size_validator    Decoded frame size validation
-  → decoder
-  → prepender
-  → encoder
-  → krypton_resource_guard    Write watermarks + pending queue protection
-  → packet_handler (Connection)
-```
-
-#### Security Modules
-
-| Module | Class | Description |
-|---|---|---|
-| **Connection Rate Limiter** | `ConnectionRateLimiter` | Per-IP sliding-window counter. Closes new connections exceeding the burst limit (default: 20/s). `@Sharable` singleton — zero per-connection allocation. |
-| **Handshake Timeout** | `HandshakeTimeoutHandler` | Stage-aware `ReadTimeoutHandler`: HANDSHAKE 5s → LOGIN 10s → PLAY 30s. Prevents half-open connection exhaustion. |
-| **Packet Size Validator** | `PacketSizeValidator` | Post-frame-decode size check (default max: 2 MiB). Rejects empty frames and force-closes on severely oversized packets (>4× limit). |
-| **Handshake Validator** | `HandshakeValidator` | Validates server address length/content and port range. Rejects scanning bots and malformed clients at earliest stage. |
-| **Anomaly Detector** | `AnomalyDetector` | Per-connection weighted strike system. Tracks HMAC failures (weight 3), compression errors (2), protocol violations (3), invalid packets (2), missing hello (1). Disconnects at threshold (default: 10 strikes). |
-| **Netty Resource Guard** | `NettyResourceGuard` | Configures write buffer watermarks (512 KiB / 2 MiB). Limits pending write queue (default: 4096). Force-closes channels unwritable for too long (default: 15s). Prevents slow-read memory exhaustion. |
-| **Security Metrics** | `SecurityMetrics` | Lock-free `AtomicLong` counters for all security events. Periodic summary logging (default: every 5 min). Exposed via `/krypton security status`. |
-
-#### Configuration (`[security]` section)
-
-```toml
-[security]
-  enabled = true                            # Global kill-switch
-
-  [security.connection_rate_limit]
-    rate = 10                               # Per-IP sustained connections/s
-    burst = 20                              # Per-IP burst limit
-
-  [security.timeouts]
-    handshake_sec = 5
-    login_sec = 10
-    play_sec = 30
-
-  [security.packet_size]
-    max_bytes = 2097152                     # 2 MiB max decoded frame
-
-  [security.handshake_validation]
-    max_address_length = 255
-
-  [security.anomaly]
-    strike_threshold = 10                   # Weighted strikes before disconnect
-
-  [security.resource_guard]
-    watermark_low = 524288                  # 512 KiB
-    watermark_high = 2097152               # 2 MiB
-    max_pending_writes = 4096
-    max_unwritable_seconds = 15
-
-  [security.metrics]
-    interval_sec = 300                      # Summary log interval (0 = disabled)
-```
-
-## test data
-In the original test, this mod was able to reduce the initial package size to 13% of the original.
+原始测试中，本 mod 可将初始包大小降至原版的 **13%**。
 
 <img src="./test.png" alt="test" />
 
-## Credit
+---
+
+## 致谢
 
 - [Krypton Fabric](https://modrinth.com/mod/krypton)
 - [Velocity](https://github.com/PaperMC/Velocity)
