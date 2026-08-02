@@ -5,7 +5,8 @@
   "name": "Krypton Hybrid",
   "description": "Network compression and packet optimization for Minecraft.",
   "authors": [
-    "xinian"
+    "xinian",
+    "Liuyue_awa"
   ],
   "contact": {},
   "license": "LGPL-3.0-only",

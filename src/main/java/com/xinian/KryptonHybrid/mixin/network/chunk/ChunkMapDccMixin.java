@@ -1,6 +1,7 @@
 package com.xinian.KryptonHybrid.mixin.network.chunk;
 
-import com.llamalad7.mixinextras.sugar.Local;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -31,42 +32,47 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class ChunkMapDccMixin {
 
     @Shadow @Final
-    ServerLevel level;
-
-    @Shadow
-    private void markChunkPendingToSend(ServerPlayer player, ChunkPos chunkPos) {
-        throw new AssertionError();
-    }
+    private ServerLevel level;
 
     /**
-     * Intercepts the {@code ChunkTrackingView.difference()} call inside
+     * Wraps the {@code ChunkTrackingView.difference()} call inside
      * {@code applyChunkTrackingView} and wraps the enter/leave callbacks
-     * with DCC logic.  Optional ({@code require = 0}) — VMP's
-     * {@code @Overwrite} may remove this call site entirely.
+     * with DCC logic.
+     *
+     * <p>Must be a {@code @WrapOperation} (not a cancellable {@code @Inject}): the
+     * vanilla method performs {@code player.setChunkTrackingView(next)} right
+     * after the {@code difference} call, and cancelling the whole method would
+     * leave the player's tracking view permanently empty — breaking
+     * {@code ChunkMap.isChunkTracked} so that no entity is ever paired with the
+     * player (no AddEntity packets are sent).</p>
+     *
+     * <p>Optional ({@code require = 0}) — VMP's {@code @Overwrite} may remove
+     * this call site entirely.</p>
      */
-    @Inject(
+    @WrapOperation(
             method = "applyChunkTrackingView",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/server/level/ChunkTrackingView;difference(Lnet/minecraft/server/level/ChunkTrackingView;Lnet/minecraft/server/level/ChunkTrackingView;Ljava/util/function/Consumer;Ljava/util/function/Consumer;)V"
             ),
-            cancellable = true,
             require = 0
     )
     private void krypton$applyDccToTrackingDiff(
-            ServerPlayer player,
+            ChunkTrackingView previous,
             ChunkTrackingView next,
-            CallbackInfo ci,
-            @Local(name = "previous") ChunkTrackingView previous
+            java.util.function.Consumer<ChunkPos> enter,
+            java.util.function.Consumer<ChunkPos> leave,
+            Operation<Void> original,
+            ServerPlayer player,
+            ChunkTrackingView nextView
     ) {
-        ci.cancel();
         ResourceKey<Level> dim = this.level.dimension();
         ChunkTrackingView.difference(
                 previous,
                 next,
                 pos -> {
                     if (!DelayedChunkCache.INSTANCE.onChunkEnter(player, dim, pos)) {
-                        markChunkPendingToSend(player, pos);
+                        enter.accept(pos);
                     }
                 },
                 pos -> {
@@ -79,7 +85,7 @@ public abstract class ChunkMapDccMixin {
                         return;
                     }
                     if (!DelayedChunkCache.INSTANCE.onChunkLeave(player, dim, pos)) {
-                        krypton$dropChunkNow(player, pos);
+                        leave.accept(pos);
                     }
                 }
         );
