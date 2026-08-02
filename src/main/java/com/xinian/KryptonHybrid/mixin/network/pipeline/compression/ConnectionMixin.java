@@ -72,6 +72,13 @@ public class ConnectionMixin implements ZstdUpgradeExtension {
     public void postSetupCompression(int compressionThreshold, boolean validate, CallbackInfo ci) {
         if (compressionThreshold < 0) return;
 
+        // Already upgraded to Krypton compression during the configuration handshake
+        // (krypton$upgradeToZstd): keep the installed compressors untouched.
+        Object existingCompress = this.channel.pipeline().get("compress");
+        if (existingCompress instanceof ZstdCompressEncoder || existingCompress instanceof MinecraftCompressEncoder) {
+            return;
+        }
+
         // Replace the vanilla compressors with Velocity-native ones.
         // Remove vanilla handlers first.
         if (this.channel.pipeline().get("decompress") instanceof CompressionDecoder) {

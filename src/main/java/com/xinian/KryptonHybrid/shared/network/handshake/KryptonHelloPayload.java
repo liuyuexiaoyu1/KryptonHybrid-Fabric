@@ -39,16 +39,28 @@ public record KryptonHelloPayload(int featureFlags) implements CustomPacketPaylo
 
     public static KryptonHelloPayload current() {
         int flags = 0;
-        if (KryptonConfig.chunkOptEnabled) {
+        // ViaVersion / ViaFabricPlus / ViaBackwards translate packets in the client
+        // pipeline using vanilla formats — they cannot understand Krypton's custom
+        // chunk/light/block-entity encodings. When present, drop those features so
+        // the server falls back to vanilla wire formats (the server checks the
+        // received feature flags via PacketControlState.supportsRemoteFeature).
+        boolean viaCompatibility = isViaPresent();
+        if (KryptonConfig.chunkOptEnabled && !viaCompatibility) {
             flags |= FEATURE_CHUNK_DATA;
         }
-        if (KryptonConfig.lightOptEnabled) {
+        if (KryptonConfig.lightOptEnabled && !viaCompatibility) {
             flags |= FEATURE_LIGHT_DATA;
         }
-        if (KryptonConfig.blockEntityDeltaEnabled) {
+        if (KryptonConfig.blockEntityDeltaEnabled && !viaCompatibility) {
             flags |= FEATURE_BLOCK_ENTITY_DELTA;
         }
         return new KryptonHelloPayload(flags);
+    }
+
+    private static boolean isViaPresent() {
+        return net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("viafabricplus")
+                || net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("viaversion")
+                || net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("viabackwards");
     }
 
     @Override

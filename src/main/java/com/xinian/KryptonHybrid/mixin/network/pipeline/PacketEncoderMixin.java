@@ -9,6 +9,8 @@ import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import com.xinian.KryptonHybrid.shared.network.broadcast.BroadcastSerializationCache;
 import com.xinian.KryptonHybrid.shared.network.broadcast.BundleEncodeContext;
+import com.xinian.KryptonHybrid.shared.network.compression.MinecraftCompressEncoder;
+import com.xinian.KryptonHybrid.shared.network.compression.ZstdCompressEncoder;
 import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 import com.xinian.KryptonHybrid.shared.network.control.PacketControlContext;
 import com.xinian.KryptonHybrid.shared.network.control.PacketControlPhase;
@@ -77,6 +79,18 @@ public class PacketEncoderMixin {
         int bytes = out.readableBytes();
         NetworkTrafficStats.INSTANCE.recordPacketType(kryptonfnp$resolveKey(packet), bytes);
         NetworkTrafficStats.INSTANCE.recordPacketMod(kryptonfnp$resolveModId(packet), bytes);
+
+        // If no Krypton compressor is installed in the pipeline (e.g. Velocity
+        // modern forwarding skips setupCompression on the backend), the
+        // compressors' recordEncode is never called and send traffic would read 0.
+        // Fall back to recording here with original == wire (no compression).
+        if (bytes > 0) {
+            Object compressHandler = ctx.pipeline().get("compress");
+            if (!(compressHandler instanceof ZstdCompressEncoder)
+                    && !(compressHandler instanceof MinecraftCompressEncoder)) {
+                NetworkTrafficStats.INSTANCE.recordEncode(bytes, bytes);
+            }
+        }
 
         // Cache only safe PLAY-phase packets to avoid protocol-phase/id mismatches.
         if (kryptonfnp$shouldUseBroadcastCache(ctx, packet) && bytes > 0 && bytes < 65536) {
