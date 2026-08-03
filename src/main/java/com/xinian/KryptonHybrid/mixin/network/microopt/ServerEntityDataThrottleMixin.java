@@ -177,6 +177,15 @@ public abstract class ServerEntityDataThrottleMixin {
      * from {@code packDirty()} — the internal {@code DataItem} creates new wrapper
      * objects on mutation.</p>
      *
+     * <p><strong>Never throttled:</strong> the shared-flags slot
+     * ({@code DATA_SHARED_FLAGS_ID}) is broadcast unconditionally whenever it is
+     * dirty.  The client locally predicts fall-flying (elytra) on jump input and
+     * 26.x {@code stopFallFlying()} toggles flag 7 {@code true → false} within one
+     * tick; if the server rejects a {@code START_FALL_FLYING} command the dirty
+     * flags value can equal the last broadcast value while the client's predicted
+     * state differs.  Throttling that entry would drop the corrective broadcast,
+     * leaving the client's elytra stuck open while the server is closed.</p>
+     *
      * @param dirtyEntries the list of dirty data values from {@link SynchedEntityData#packDirty()}
      * @return a new list containing only entries whose values differ from the last broadcast;
      *         may be empty but never {@code null}
@@ -185,8 +194,16 @@ public abstract class ServerEntityDataThrottleMixin {
     private List<SynchedEntityData.DataValue<?>> krypton$filterUnchanged(
             List<SynchedEntityData.DataValue<?>> dirtyEntries) {
         List<SynchedEntityData.DataValue<?>> result = new ArrayList<>(dirtyEntries.size());
+        int sharedFlagsId = EntityAccessor.getDataSharedFlagsId().id();
 
         for (SynchedEntityData.DataValue<?> entry : dirtyEntries) {
+            // Shared flags must always be re-broadcast when dirty — see javadoc above.
+            if (entry.id() == sharedFlagsId) {
+                result.add(entry);
+                krypton$lastBroadcastValues.put(entry.id(), entry.value());
+                continue;
+            }
+
             Object previousValue = krypton$lastBroadcastValues.get(entry.id());
             Object currentValue  = entry.value();
 

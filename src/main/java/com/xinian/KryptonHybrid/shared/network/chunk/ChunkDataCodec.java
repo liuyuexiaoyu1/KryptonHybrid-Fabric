@@ -222,9 +222,15 @@ public final class ChunkDataCodec {
                 int biomeBpe = src.getUnsignedByte(biomeStart); // peek
 
                 if (biomeBpe == 0) {
-                    // Single-value biome: byte(0) + VarInt(biomeId) (no storage in 26.2)
+                    // Single-value biome: byte(0) + VarInt(biomeId)
+                    // 1.21.1-1.21.4 SimpleBitStorage writes a trailing VarInt length
+                    // prefix (always 0 for a single-value palette). 1.21.5+ uses
+                    // writeFixedSizeLongArray (nothing written).
                     src.readByte(); // skip bpe=0
                     int biomeId = VarInt.read(src);
+                    //#if MC < 12105
+                    //$$ VarInt.read(src); // storage length prefix (always 0)
+                    //#endif
                     biomesOut.writeByte(BIOME_SINGLE_VALUE);
                     biomesOut.writeVarInt(biomeId);
                 } else {

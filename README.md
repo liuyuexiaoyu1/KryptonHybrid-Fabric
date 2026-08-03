@@ -55,11 +55,11 @@
 
 ### 2. Zstd 字典
 
-| 配置项 | 默认值 | 说明 |
-|---|---|---|
-> 字典**完全由服务端自动训练并推送给客户端**（配置阶段 + PLAY 阶段推送），无需手动准备字典文件。
+> 字典**完全由服务端自动训练并推送给客户端**。
 > *The dictionary is fully auto-trained on the server and pushed to clients — no manual dictionary file is needed.*
 
+| 配置项 | 默认值 | 说明 |
+|---|---|---|
 | `zstdDictEnabled` | `true` | 字典压缩开关（自动管理：训练完成后服务端自动启用并推送）。 |
 | `zstdDictPath` | `config/krypton_hybrid.zdict` | 字典存储路径（自动管理，无需手动配置）。 |
 | `zstdDictTrainingCaptureEnabled` | `true` | 捕获出口流量样本（自动训练前提，默认开启）。 |
@@ -75,48 +75,46 @@
 | `zstdDictAutoTrainIntervalSec` | `3600` | 两次自动训练的最小间隔（秒，0 = 无冷却）。 |
 | `zstdDictAutoTrainClearSamples` | `true` | 自动训练成功后清空样本。 |
 
-> 训练指南见 [docs/zstd-dictionary-training.md](docs/zstd-dictionary-training.md)。
-
 ### 3. 网络安全
 
-| 配置项 | 默认值 | 说明 |
-|---|---|---|
-| `securityEnabled` | `true` | 安全层总开关。 |
-| `securityConnectionRatePerSecond` | `8` | 每 IP 每秒持续连接数上限。 |
-| `securityConnectionBurstLimit` | `20` | 每 IP 连接突发上限。 |
-| `securityConnectionQuarantineSeconds` | `30` | 滥用地址的隔离秒数。 |
-| `securityRapidReconnectWindowMs` | `1500` | 快速重连检测窗口。 |
-| `securityRapidReconnectPenalty` | `4` | 快速重连消耗的额外令牌。 |
+| 配置项 | 默认值        | 说明 |
+|---|------------|---|
+| `securityEnabled` | `false`    | 安全层总开关。 |
+| `securityConnectionRatePerSecond` | `8`        | 每 IP 每秒持续连接数上限。 |
+| `securityConnectionBurstLimit` | `20`       | 每 IP 连接突发上限。 |
+| `securityConnectionQuarantineSeconds` | `30`       | 滥用地址的隔离秒数。 |
+| `securityRapidReconnectWindowMs` | `1500`     | 快速重连检测窗口。 |
+| `securityRapidReconnectPenalty` | `4`        | 快速重连消耗的额外令牌。 |
 | `securityMaxDecompressedBytes` | `16777216` | 解压后最大载荷（16 MiB）。 |
-| `securityMaxCompressionRatio` | `100` | 最大压缩比，超限拒绝解压。 |
-| `securityMinCompressedBytesForRatioCheck` | `256` | 压缩比检查的最小压缩字节数。 |
-| `securityHandshakeTimeoutSec` | `5` | 握手阶段读取超时。 |
-| `securityLoginTimeoutSec` | `10` | 登录阶段超时。 |
-| `securityPlayTimeoutSec` | `30` | 游戏阶段超时。 |
-| `securityMaxPacketBytes` | `2097152` | 分包后最大解码帧（2 MiB）。 |
-| `securityMaxCustomPayloadBytes` | `131072` | 自定义载荷最大字节数。 |
-| `securityReadLimitsEnabled` | `false` | FriendlyByteBuf 读取侧防护（默认关闭以兼容）。 |
-| `securityMaxStringChars` | `32767` | 解码字符串最大字符数。 |
-| `securityMaxCollectionElements` | `16384` | 解码集合最大元素数。 |
-| `securityMaxMapEntries` | `8192` | 解码 Map 最大条目数。 |
-| `securityMaxCountedElements` | `16384` | readWithCount 载荷最大循环数。 |
-| `securityMaxByteArrayBytes` | `2097152` | 解码 byte[] 最大长度。 |
-| `securityAnomalyStrikeThreshold` | `10` | 加权异常积分阈值，超限强制断开。 |
-| `securityWriteWatermarkLow` | `524288` | Netty 写缓冲低水位（512 KiB）。 |
-| `securityWriteWatermarkHigh` | `2097152` | Netty 写缓冲高水位（2 MiB）。 |
-| `securityMaxPendingWrites` | `4096` | 挂起写入队列上限。 |
-| `securityMaxUnwritableSeconds` | `15` | 通道长时间不可写的强制断开秒数。 |
-| `securityMinProtocolVersion` | `3` | 握手最低协议版本。 |
-| `securityMaxProtocolVersion` | `1100` | 握手最高协议版本。 |
-| `securityMaxHandshakeAddressLength` | `255` | 握手地址最大长度。 |
-| `motdCacheEnabled` | `true` | 缓存 MOTD/状态响应。 |
-| `motdCacheTtlMs` | `3000` | MOTD 缓存有效期（0 = 关闭）。 |
-| `securityStatusPingGuardEnabled` | `true` | 现代 STATUS ping 独立限速。 |
-| `securityStatusPingRatePerSecond` | `4` | 状态 ping 每秒上限。 |
-| `securityStatusPingBurstLimit` | `8` | 状态 ping 突发上限。 |
-| `securityStatusPingQuarantineSeconds` | `15` | 状态 ping 滥用隔离秒数。 |
-| `securityStatusPingSilentDrop` | `true` | 静默关闭超限连接（不发送断开包）。 |
-| `securityLegacyQueryGuardEnabled` | `true` | 旧版（1.7 前）legacy ping 同样防护。 |
+| `securityMaxCompressionRatio` | `100`      | 最大压缩比，超限拒绝解压。 |
+| `securityMinCompressedBytesForRatioCheck` | `256`      | 压缩比检查的最小压缩字节数。 |
+| `securityHandshakeTimeoutSec` | `5`        | 握手阶段读取超时。 |
+| `securityLoginTimeoutSec` | `10`       | 登录阶段超时。 |
+| `securityPlayTimeoutSec` | `30`       | 游戏阶段超时。 |
+| `securityMaxPacketBytes` | `2097152`  | 分包后最大解码帧（2 MiB）。 |
+| `securityMaxCustomPayloadBytes` | `131072`   | 自定义载荷最大字节数。 |
+| `securityReadLimitsEnabled` | `false`    | FriendlyByteBuf 读取侧防护（默认关闭以兼容）。 |
+| `securityMaxStringChars` | `32767`    | 解码字符串最大字符数。 |
+| `securityMaxCollectionElements` | `16384`    | 解码集合最大元素数。 |
+| `securityMaxMapEntries` | `8192`     | 解码 Map 最大条目数。 |
+| `securityMaxCountedElements` | `16384`    | readWithCount 载荷最大循环数。 |
+| `securityMaxByteArrayBytes` | `2097152`  | 解码 byte[] 最大长度。 |
+| `securityAnomalyStrikeThreshold` | `10`       | 加权异常积分阈值，超限强制断开。 |
+| `securityWriteWatermarkLow` | `524288`   | Netty 写缓冲低水位（512 KiB）。 |
+| `securityWriteWatermarkHigh` | `2097152`  | Netty 写缓冲高水位（2 MiB）。 |
+| `securityMaxPendingWrites` | `4096`     | 挂起写入队列上限。 |
+| `securityMaxUnwritableSeconds` | `15`       | 通道长时间不可写的强制断开秒数。 |
+| `securityMinProtocolVersion` | `3`        | 握手最低协议版本。 |
+| `securityMaxProtocolVersion` | `1100`     | 握手最高协议版本。 |
+| `securityMaxHandshakeAddressLength` | `255`      | 握手地址最大长度。 |
+| `motdCacheEnabled` | `true`     | 缓存 MOTD/状态响应。 |
+| `motdCacheTtlMs` | `3000`     | MOTD 缓存有效期（0 = 关闭）。 |
+| `securityStatusPingGuardEnabled` | `true`     | 现代 STATUS ping 独立限速。 |
+| `securityStatusPingRatePerSecond` | `4`        | 状态 ping 每秒上限。 |
+| `securityStatusPingBurstLimit` | `8`        | 状态 ping 突发上限。 |
+| `securityStatusPingQuarantineSeconds` | `15`       | 状态 ping 滥用隔离秒数。 |
+| `securityStatusPingSilentDrop` | `true`     | 静默关闭超限连接（不发送断开包）。 |
+| `securityLegacyQueryGuardEnabled` | `true`     | 旧版（1.7 前）legacy ping 同样防护。 |
 
 ### 4. 区块优化
 
@@ -183,7 +181,7 @@
 
 ## 命令
 
-需要权限等级 2。
+部分子指令需要权限等级 2。
 
 ```
 /krypton stats show          – 压缩率、带宽节省、运行时长
@@ -207,7 +205,7 @@
 
 ### 1. 网络压缩管线
 
-Krypton Hybrid 通过注入 `Connection.setupCompression` 替换 Minecraft 默认 zlib 编解码器。
+Krypton Hybrid 替换了 Minecraft 默认 zlib 编解码器。
 
 | 特性 | 详情 |
 |---|---|

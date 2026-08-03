@@ -55,8 +55,20 @@ public class ConnectionMixin implements ZstdUpgradeExtension {
         ZstdCompressDecoder zstdDecoder =
                 new ZstdCompressDecoder(compressionThreshold, validate, ZstdUtil.createDecompressor());
 
-        channel.pipeline().addBefore("decoder", "decompress", zstdDecoder);
-        channel.pipeline().addBefore("encoder", "compress", zstdEncoder);
+        // "decoder"/"encoder" are not guaranteed to exist: on 26.x the serialization
+        // handlers start as "inbound_config"/"outbound_config" placeholders that are
+        // renamed asynchronously. "splitter"/"prepender" always exist (same anchors
+        // vanilla setupCompression uses), so fall back to them.
+        if (channel.pipeline().get("decoder") != null) {
+            channel.pipeline().addBefore("decoder", "decompress", zstdDecoder);
+        } else {
+            channel.pipeline().addAfter("splitter", "decompress", zstdDecoder);
+        }
+        if (channel.pipeline().get("encoder") != null) {
+            channel.pipeline().addBefore("encoder", "compress", zstdEncoder);
+        } else {
+            channel.pipeline().addAfter("prepender", "compress", zstdEncoder);
+        }
 
         channel.pipeline().fireUserEventTriggered(KryptonPipelineEvent.COMPRESSION_ENABLED);
     }
@@ -90,13 +102,28 @@ public class ConnectionMixin implements ZstdUpgradeExtension {
 
         VelocityCompressor compressor = Natives.compress.get().create(4);
 
+        // Half upgrade (login-phase wire Zstd): the ENCODER stays zlib-compatible
+        // (MinecraftCompressEncoder) until the peer's configuration-phase hello
+        // upgrades it to Zstd (see krypton$upgradeToZstd), while the DECODER is the
+        // Zstd one right away — its built-in zlib fallback also accepts vanilla
+        // peers, so single-side installs and cross-server legs keep working.
         MinecraftCompressEncoder encoder =
                 new MinecraftCompressEncoder(compressionThreshold, compressor);
-        MinecraftCompressDecoder decoder =
-                new MinecraftCompressDecoder(compressionThreshold, validate, compressor);
+        ZstdCompressDecoder decoder =
+                new ZstdCompressDecoder(compressionThreshold, validate, ZstdUtil.createDecompressor());
 
-        channel.pipeline().addBefore("decoder", "decompress", decoder);
-        channel.pipeline().addBefore("encoder", "compress", encoder);
+        // Same anchors as krypton$upgradeToZstd: "decoder"/"encoder" may not exist
+        // yet on 26.x (placeholder names), "splitter"/"prepender" always do.
+        if (this.channel.pipeline().get("decoder") != null) {
+            this.channel.pipeline().addBefore("decoder", "decompress", decoder);
+        } else {
+            this.channel.pipeline().addAfter("splitter", "decompress", decoder);
+        }
+        if (this.channel.pipeline().get("encoder") != null) {
+            this.channel.pipeline().addBefore("encoder", "compress", encoder);
+        } else {
+            this.channel.pipeline().addAfter("prepender", "compress", encoder);
+        }
 
         this.channel.pipeline().fireUserEventTriggered(KryptonPipelineEvent.COMPRESSION_ENABLED);
     }

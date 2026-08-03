@@ -2,8 +2,12 @@ package com.xinian.KryptonHybrid.shared.network.compression;
 
 import com.github.luben.zstd.ZstdDecompressCtx;
 import com.github.luben.zstd.ZstdException;
+import com.velocitypowered.natives.compression.VelocityCompressor;
+import com.velocitypowered.natives.util.MoreByteBufUtils;
+import com.velocitypowered.natives.util.Natives;
 import com.xinian.KryptonHybrid.shared.network.security.DecompressionBombGuard;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import net.minecraft.network.FriendlyByteBuf;
@@ -83,6 +87,15 @@ public class ZstdCompressDecoder extends MessageToMessageDecoder<ByteBuf> {
     private final boolean validate;
     private int threshold;
 
+    /**
+     * Lazy zlib (deflate) fallback used during the compression-switch transition:
+     * the peer may still have vanilla-compressed frames in flight when it switches
+     * to Zstd (e.g. the server switches when it receives the ready payload, but
+     * frames it sent just before that are still vanilla zlib). On a Zstd magic
+     * mismatch we try zlib before failing. Created on first use, closed on removal.
+     */
+    private VelocityCompressor zlibFallback;
+
     /** Grow-only scratch buffer for compressed input (heap-fallback path only). */
     private byte[] scratchIn = new byte[8192];
     /** Grow-only scratch buffer for decompressed output (heap-fallback path only). */
@@ -133,10 +146,10 @@ public class ZstdCompressDecoder extends MessageToMessageDecoder<ByteBuf> {
         }
 
         // --- Validate claimed size ---
+        // Only the hard cap is enforced: the peer compresses with ITS own
+        // threshold, so a claimed size below ours is perfectly legal on the wire
+        // (mixed thresholds, cached wire bytes, threshold changes mid-session).
         if (validate) {
-            checkState(claimedUncompressedSize >= threshold,
-                    "Uncompressed size %s is less than threshold %s",
-                    claimedUncompressedSize, threshold);
             checkState(claimedUncompressedSize <= UNCOMPRESSED_CAP,
                     "Uncompressed size %s exceeds hard cap of %s",
                     claimedUncompressedSize, UNCOMPRESSED_CAP);
@@ -160,6 +173,15 @@ public class ZstdCompressDecoder extends MessageToMessageDecoder<ByteBuf> {
                             nioOut, 0, claimedUncompressedSize,
                             nioIn,  0, compressedSize);
                 } catch (ZstdException e) {
+                    // Frame is not Zstd — it may be a vanilla zlib frame still in
+                    // flight from before the peer switched compression. The zlib
+                    // inflate consumes `in` itself (ensureCompatible returns it
+                    // directly when compatible), so no manual skip here.
+                    ByteBuf zlib = tryZlibInflate(ctx, in, compressedSize, claimedUncompressedSize);
+                    if (zlib != null) {
+                        out.add(zlib);
+                        return;
+                    }
                     throw new Exception("Zstd decompression failed: " + e.getMessage(), e);
                 }
 
@@ -195,6 +217,15 @@ public class ZstdCompressDecoder extends MessageToMessageDecoder<ByteBuf> {
                     scratchOut, 0, claimedUncompressedSize,
                     scratchIn, 0, compressedSize);
         } catch (ZstdException e) {
+            // Frame is not Zstd — it may be a vanilla zlib frame still in
+            // flight from before the peer switched compression. `in` was already
+            // consumed into scratchIn, so feed the scratch buffer to the fallback.
+            ByteBuf zlib = tryZlibInflate(ctx, Unpooled.wrappedBuffer(scratchIn, 0, compressedSize),
+                    compressedSize, claimedUncompressedSize);
+            if (zlib != null) {
+                out.add(zlib);
+                return;
+            }
             throw new Exception("Zstd decompression failed: " + e.getMessage(), e);
         }
 
@@ -209,11 +240,60 @@ public class ZstdCompressDecoder extends MessageToMessageDecoder<ByteBuf> {
     }
 
     /**
+     * Attempts to decompress the frame as vanilla zlib (deflate). Used as a graceful
+     * fallback for frames that are still vanilla-compressed because the peer had
+     * already sent them before switching to Zstd. Returns {@code null} when the
+     * frame is not a valid zlib stream either (the caller rethrows the Zstd error).
+     */
+    private ByteBuf tryZlibInflate(ChannelHandlerContext ctx, ByteBuf in,
+                                   int compressedSize, int uncompressedSize) {
+        try {
+            VelocityCompressor zc = zlibCompressor();
+            ByteBuf compatibleIn = MoreByteBufUtils.ensureCompatible(ctx.alloc(), zc, in);
+            try {
+                ByteBuf result = ctx.alloc().directBuffer(uncompressedSize);
+                try {
+                    zc.inflate(compatibleIn, result, 4);
+                } catch (Throwable t) {
+                    result.release();
+                    return null;
+                }
+                if (result.readableBytes() != uncompressedSize) {
+                    result.release();
+                    return null;
+                }
+                return result;
+            } finally {
+                compatibleIn.release();
+            }
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    private VelocityCompressor zlibCompressor() {
+        VelocityCompressor c = zlibFallback;
+        if (c == null) {
+            synchronized (this) {
+                c = zlibFallback;
+                if (c == null) {
+                    zlibFallback = c = Natives.compress.get().create(4);
+                }
+            }
+        }
+        return c;
+    }
+
+    /**
      * Releases the native Zstd decompression context when the handler is removed from the pipeline.
      */
     @Override
     public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
         decompressor.close();
+        VelocityCompressor zc = zlibFallback;
+        if (zc != null) {
+            zc.close();
+        }
         super.handlerRemoved(ctx);
     }
 

@@ -4,7 +4,6 @@ import com.xinian.KryptonHybrid.shared.network.util.KryptonConnectionUtil;
 
 import com.xinian.KryptonHybrid.command.KryptonStatsCommand;
 import com.xinian.KryptonHybrid.mixin.network.pipeline.IServerCommonListenerAccessor;
-import com.xinian.KryptonHybrid.shared.network.pipeline.ZstdUpgradeExtension;
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import com.xinian.KryptonHybrid.shared.KryptonSharedBootstrap;
 import com.xinian.KryptonHybrid.shared.network.compression.ZstdAutoTrainer;
@@ -12,9 +11,9 @@ import com.xinian.KryptonHybrid.shared.network.compression.ZstdUtil;
 import com.xinian.KryptonHybrid.shared.network.control.PacketControlState;
 import com.xinian.KryptonHybrid.shared.network.handshake.KryptonDictPayload;
 import com.xinian.KryptonHybrid.shared.network.handshake.KryptonHelloPayload;
-import com.xinian.KryptonHybrid.shared.network.payload.KryptonCompressionReadyPayload;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsRequestPayload;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
+import com.xinian.KryptonHybrid.shared.network.pipeline.ZstdUpgradeExtension;
 import com.xinian.KryptonHybrid.shared.network.security.MotdCache;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -57,7 +56,6 @@ public final class KryptonHybrid implements ModInitializer {
         //#if MC >= 26.1
         PayloadTypeRegistry.clientboundConfiguration().register(KryptonHelloPayload.TYPE, KryptonHelloPayload.STREAM_CODEC);
         PayloadTypeRegistry.serverboundConfiguration().register(KryptonHelloPayload.TYPE, KryptonHelloPayload.STREAM_CODEC);
-        PayloadTypeRegistry.serverboundConfiguration().register(KryptonCompressionReadyPayload.TYPE, KryptonCompressionReadyPayload.STREAM_CODEC);
         PayloadTypeRegistry.clientboundConfiguration().register(KryptonDictPayload.TYPE, KryptonDictPayload.STREAM_CODEC);
         PayloadTypeRegistry.clientboundPlay().register(KryptonDictPayload.TYPE, KryptonDictPayload.STREAM_CODEC);
         PayloadTypeRegistry.clientboundPlay().register(StatsSnapshotPayload.TYPE, StatsSnapshotPayload.STREAM_CODEC);
@@ -65,7 +63,6 @@ public final class KryptonHybrid implements ModInitializer {
         //#else
         //$$ PayloadTypeRegistry.configurationS2C().register(KryptonHelloPayload.TYPE, KryptonHelloPayload.STREAM_CODEC);
         //$$ PayloadTypeRegistry.configurationC2S().register(KryptonHelloPayload.TYPE, KryptonHelloPayload.STREAM_CODEC);
-        //$$ PayloadTypeRegistry.configurationC2S().register(KryptonCompressionReadyPayload.TYPE, KryptonCompressionReadyPayload.STREAM_CODEC);
         //$$ PayloadTypeRegistry.configurationS2C().register(KryptonDictPayload.TYPE, KryptonDictPayload.STREAM_CODEC);
         //$$ PayloadTypeRegistry.playS2C().register(KryptonDictPayload.TYPE, KryptonDictPayload.STREAM_CODEC);
         //$$ PayloadTypeRegistry.playS2C().register(StatsSnapshotPayload.TYPE, StatsSnapshotPayload.STREAM_CODEC);
@@ -90,27 +87,30 @@ public final class KryptonHybrid implements ModInitializer {
             }
         });
 
+        // All capability negotiation happens in the CONFIGURATION phase: the
+        // login phase never reaches the real client (the proxy performs the
+        // backend login). The client upgrades once on the first configuration
+        // hello; each backend's encoder is upgraded either by the client's
+        // configuration hello response or by the proxy's forwarded hello.
         ServerConfigurationNetworking.registerGlobalReceiver(KryptonHelloPayload.TYPE, (payload, context) -> {
             //#if MC >= 26.1
             Connection connection = ((IServerCommonListenerAccessor) context.packetListener()).krypton$getConnection();
             //#else
             //$$ Connection connection = ((IServerCommonListenerAccessor) context.networkHandler()).krypton$getConnection();
             //#endif
-            PacketControlState.get(KryptonConnectionUtil.channel(connection)).markHelloNegotiated(payload.featureFlags());
-        });
-
-        // Client has applied the dictionary and is about to enable compression:
-        // install the server-side compressors now. After this point all packets on
-        // this connection (remaining configuration + play) travel compressed.
-        ServerConfigurationNetworking.registerGlobalReceiver(KryptonCompressionReadyPayload.TYPE, (payload, context) -> {
-            //#if MC >= 26.1
-            Connection connection = ((IServerCommonListenerAccessor) context.packetListener()).krypton$getConnection();
-            //#else
-            //$$ Connection connection = ((IServerCommonListenerAccessor) context.networkHandler()).krypton$getConnection();
-            //#endif
-            ZstdUpgradeExtension ext = (ZstdUpgradeExtension) connection;
-            ext.krypton$upgradeToZstd(ext.krypton$getCompressionThreshold(), ext.krypton$getCompressionValidate());
-            KryptonHybrid.LOGGER.info("Krypton compression enabled for connection {}", connection);
+            PacketControlState state = PacketControlState.get(KryptonConnectionUtil.channel(connection));
+            state.markHelloNegotiated(payload.featureFlags());
+            // The client answered our configuration hello: switch the encoder to
+            // wire-level Zstd now (the decoder is already Zstd-with-zlib-fallback
+            // from setupCompression). This happens before the registry sync, so the
+            // whole configuration phase is Zstd-compressed.
+            try {
+                ZstdUpgradeExtension ext = (ZstdUpgradeExtension) connection;
+                ext.krypton$upgradeToZstd(ext.krypton$getCompressionThreshold(), ext.krypton$getCompressionValidate());
+                KryptonHybrid.LOGGER.info("Krypton wire Zstd enabled for connection {}", connection);
+            } catch (Throwable t) {
+                KryptonHybrid.LOGGER.error("Krypton: failed to enable wire Zstd", t);
+            }
         });
 
         ServerPlayNetworking.registerGlobalReceiver(StatsRequestPayload.TYPE, (payload, context) ->

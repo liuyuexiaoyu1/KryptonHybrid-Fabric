@@ -100,21 +100,22 @@ public abstract class ClientboundLevelChunkWithLightPacketMixin {
         RegistryFriendlyByteBuf vanillaBuf = new RegistryFriendlyByteBuf(
                 Unpooled.buffer(), buf.registryAccess());
         try {
-            // Heightmaps in 26.2 format: Map<Heightmap.Types, long[]> via
+            //#if MC >= 12105
+            // Heightmaps in 1.21.5+ format: Map<Heightmap.Types, long[]> via
             // HEIGHTMAPS_STREAM_CODEC = map(EnumMap::new, Types.STREAM_CODEC, LONG_ARRAY)
             // Each entry: VarInt(typeId) + VarInt(arrayLen) + arrayLen × 8 bytes
             vanillaBuf.writeVarInt(heightmaps.size());
             for (String key : heightmaps.keySet()) {
                 Heightmap.Types type = Heightmap.Types.valueOf(key);
                 vanillaBuf.writeVarInt(type.ordinal());
-                //#if MC >= 12105
                 long[] data = heightmaps.getLongArray(key).orElseGet(() -> new long[0]);
                 FriendlyByteBuf.writeLongArray(vanillaBuf, data);
-                //#else
-                //$$ long[] data = heightmaps.getLongArray(key);
-                //$$ vanillaBuf.writeLongArray(data);
-                //#endif
             }
+            //#else
+            //$$ // Heightmaps in <=1.21.4 format: NBT CompoundTag — writeNbt emits the
+            //$$ // TAG_Compound type byte + entries + terminator, matching readNbt().
+            //$$ vanillaBuf.writeNbt(heightmaps);
+            //#endif
             vanillaBuf.writeVarInt(vanillaBuffer.length);
             vanillaBuf.writeBytes(vanillaBuffer);
             ClientboundLevelChunkPacketData.BlockEntityInfo.LIST_STREAM_CODEC.encode(vanillaBuf, blockEntities);

@@ -134,7 +134,7 @@ public final class BroadcastBundleCollector {
             batchPlayers++;
 
             if (packets.size() == 1) {
-                player.connection.send(packets.get(0));
+                player.connection.send(packets.getFirst());
             } else {
                 int limit = BundlerInfo.BUNDLE_SIZE_LIMIT - 256;
                 for (int i = 0; i < packets.size(); i += limit) {

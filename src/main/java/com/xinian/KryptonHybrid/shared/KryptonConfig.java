@@ -163,7 +163,7 @@ public final class KryptonConfig {
     // --- Network security / independent packet control ---
 
     /** Global security kill-switch. */
-    public static volatile boolean securityEnabled = true;
+    public static volatile boolean securityEnabled = false;
 
     /** Sustained connection attempts per second per remote IP. */
     public static volatile int securityConnectionRatePerSecond = 8;
