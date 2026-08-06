@@ -87,6 +87,11 @@ public final class KryptonFabricConfig {
         KryptonHybrid.LOGGER.info("Reloaded krypton_hybrid.json");
     }
 
+    /** Persists the current KryptonConfig values (e.g. client GUI/HUD settings). */
+    public static void save() {
+        writeCurrent();
+    }
+
     private static void writeCurrent() {
         JsonObject object = new JsonObject();
 

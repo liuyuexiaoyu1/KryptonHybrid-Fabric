@@ -63,6 +63,7 @@ public record StatsSnapshotPayload(
         long secWritesDropped,
         long secWatermarkBreaches,
         List<ModEntry> topMods,
+        List<PlayerEntry> players,
         boolean openGui
 ) implements CustomPacketPayload {
 
@@ -71,6 +72,9 @@ public record StatsSnapshotPayload(
 
     /** Per-mod traffic record (used for the GUI "Mods" tab). */
     public record ModEntry(String modId, long packets, long bytes) {}
+
+    /** A client that exchanged the Krypton hello (used for the GUI "Players" tab). */
+    public record PlayerEntry(String name) {}
 
     public static final Type<StatsSnapshotPayload> TYPE = new Type<>(
 //#if MC >= 12111
@@ -129,6 +133,10 @@ public record StatsSnapshotPayload(
                             buf.writeVarLong(e.packets);
                             buf.writeVarLong(e.bytes);
                         }
+                        buf.writeVarInt(p.players.size());
+                        for (PlayerEntry pl : p.players) {
+                            buf.writeUtf(pl.name, 64);
+                        }
                         buf.writeBoolean(p.openGui);
                     },
                     buf -> {
@@ -179,6 +187,12 @@ public record StatsSnapshotPayload(
                             long by = buf.readVarLong();
                             mods.add(new ModEntry(id, pk, by));
                         }
+                        int playerCount = Math.min(buf.readVarInt(), 1024);
+                        List<PlayerEntry> players = new ArrayList<>(playerCount);
+                        for (int i = 0; i < playerCount; i++) {
+                            String name = buf.readUtf(64);
+                            players.add(new PlayerEntry(name));
+                        }
                         boolean openGui = buf.readBoolean();
                         return new StatsSnapshotPayload(
                                 elapsedSeconds, packetsSent, packetsReceived,
@@ -206,6 +220,7 @@ public record StatsSnapshotPayload(
                                 secWritesDropped,
                                 secWatermarkBreaches,
                                 mods,
+                                players,
                                 openGui);
                     }
             );
@@ -226,6 +241,18 @@ public record StatsSnapshotPayload(
      * @param openGui whether the client should force-open the stats dashboard on receipt
      */
     public static StatsSnapshotPayload current(boolean openGui) {
+        return current(openGui, List.of());
+    }
+
+    /**
+     * Builds a snapshot from current server-side counters, including the
+     * per-player connection state (name + whether the connection negotiated
+     * Zstd compression).
+     *
+     * @param openGui whether the client should force-open the stats dashboard on receipt
+     * @param players per-player connection records, collected server-side
+     */
+    public static StatsSnapshotPayload current(boolean openGui, List<PlayerEntry> players) {
         NetworkTrafficStats s = NetworkTrafficStats.INSTANCE;
         NetworkTrafficStats.TrafficEntry hottestPacket = s.getTopTypeByBytes();
         NetworkTrafficStats.TrafficEntry hottestMod = s.getTopModByBytes();
@@ -274,6 +301,7 @@ public record StatsSnapshotPayload(
                 sec.getWritesDropped(),
                 sec.getWatermarkBreaches(),
                 buildTopMods(s),
+                players,
                 openGui
         );
     }

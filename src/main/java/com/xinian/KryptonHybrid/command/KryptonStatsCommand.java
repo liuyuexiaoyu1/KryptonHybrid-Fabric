@@ -7,19 +7,25 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.xinian.KryptonHybrid.KryptonFabricConfig;
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
+import com.xinian.KryptonHybrid.shared.network.compression.ZstdCompressEncoder;
 import com.xinian.KryptonHybrid.shared.network.compression.ZstdSampleRecorder;
 import com.xinian.KryptonHybrid.shared.network.compression.ZstdUtil;
+import com.xinian.KryptonHybrid.shared.network.control.PacketControlState;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
 import com.xinian.KryptonHybrid.shared.network.security.MotdCache;
 import com.xinian.KryptonHybrid.shared.network.security.SecurityMetrics;
+import com.xinian.KryptonHybrid.shared.network.util.KryptonConnectionUtil;
+import io.netty.channel.Channel;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public final class KryptonStatsCommand {
@@ -29,6 +35,10 @@ public final class KryptonStatsCommand {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(
             Commands.literal("krypton")
+                // No root requirement: some sub-commands are player-facing
+                // (stats show / gui).  Server-wide data listings (packets,
+                // mods) and management commands (security, zstd, config,
+                // reset) require gamemaster on their own nodes.
                 .then(Commands.literal("stats")
                     .then(Commands.literal("show")
                         .executes(KryptonStatsCommand::executeShow))
@@ -42,6 +52,11 @@ public final class KryptonStatsCommand {
                             //#endif
                             .executes(KryptonStatsCommand::executeReset)))
                 .then(Commands.literal("packets")
+                        //#if MC >= 12111
+                        .requires(source -> Commands.LEVEL_GAMEMASTERS.check(source.permissions()))
+                        //#else
+                        //$$ .requires(source -> source.hasPermission(2))
+                        //#endif
                     .then(Commands.literal("bycount")
                         .executes(ctx -> executePacketsList(ctx, 10, true))
                         .then(Commands.argument("limit", IntegerArgumentType.integer(1, 50))
@@ -55,6 +70,11 @@ public final class KryptonStatsCommand {
                         .then(Commands.argument("limit", IntegerArgumentType.integer(1, 50))
                             .executes(ctx -> executePacketsWireList(ctx, IntegerArgumentType.getInteger(ctx, "limit"))))))
                 .then(Commands.literal("mods")
+                        //#if MC >= 12111
+                        .requires(source -> Commands.LEVEL_GAMEMASTERS.check(source.permissions()))
+                        //#else
+                        //$$ .requires(source -> source.hasPermission(2))
+                        //#endif
                     .then(Commands.literal("bycount")
                         .executes(ctx -> executeModsList(ctx, 10, true))
                         .then(Commands.argument("limit", IntegerArgumentType.integer(1, 50))
@@ -157,9 +177,35 @@ public final class KryptonStatsCommand {
     private static int executeGui(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         ServerPlayer player = ctx.getSource().getPlayerOrException();
         // openGui=true forces the client to open the dashboard even when the HUD overlay is on
-        StatsSnapshotPayload snap = StatsSnapshotPayload.current(true);
+        StatsSnapshotPayload snap = StatsSnapshotPayload.current(true, playerEntries(ctx.getSource().getServer()));
         ServerPlayNetworking.send(player, snap);
         return 1;
+    }
+
+    /**
+     * Collects the names of all players whose connection exchanged the Krypton
+     * hello (i.e. clients running the mod).  Clients without the mod are not
+     * listed.
+     */
+    public static List<StatsSnapshotPayload.PlayerEntry> playerEntries(MinecraftServer server) {
+        List<StatsSnapshotPayload.PlayerEntry> out = new ArrayList<>();
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+            try {
+                Channel ch = KryptonConnectionUtil.channel(
+                        KryptonConnectionUtil.connection(p.connection));
+                if (!PacketControlState.get(ch).isHelloNegotiated()) {
+                    continue;
+                }
+            } catch (Throwable ignored) {
+                continue; // unknown/closed connection — skip
+            }
+            //#if MC >= 12110
+            out.add(new StatsSnapshotPayload.PlayerEntry(p.getGameProfile().name()));
+            //#else
+            //$$ out.add(new StatsSnapshotPayload.PlayerEntry(p.getGameProfile().getName()));
+            //#endif
+        }
+        return out;
     }
 
     private static int executePacketsList(CommandContext<CommandSourceStack> ctx, int limit, boolean byCount) {

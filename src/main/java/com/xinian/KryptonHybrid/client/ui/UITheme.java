@@ -1,5 +1,8 @@
 package com.xinian.KryptonHybrid.client.ui;
 
+import com.xinian.KryptonHybrid.KryptonFabricConfig;
+import com.xinian.KryptonHybrid.shared.KryptonConfig;
+
 /**
  * Modern web-style theme system ported from MemoryCatcher.
  * <p>Provides a dark/light {@link ColorPalette} (GitHub-Primer inspired) and
@@ -33,7 +36,21 @@ public final class UITheme {
 
     public static void setMode(Mode mode) { currentMode = mode; }
     public static Mode getMode() { return currentMode; }
-    public static void toggleMode() { currentMode = currentMode == Mode.DARK ? Mode.LIGHT : Mode.DARK; }
+    public static void toggleMode() {
+        currentMode = currentMode == Mode.DARK ? Mode.LIGHT : Mode.DARK;
+        KryptonConfig.uiThemeMode = currentMode.name();
+        KryptonFabricConfig.save();
+    }
+
+    /** Applies the persisted theme mode from {@link KryptonConfig} (client startup). */
+    public static void loadFromConfig() {
+        try {
+            currentMode = Mode.valueOf(KryptonConfig.uiThemeMode);
+        } catch (RuntimeException ignored) {
+            currentMode = Mode.DARK;
+        }
+    }
+
     public static ColorPalette colors() { return currentMode == Mode.DARK ? DARK : LIGHT; }
 
     // ─── Rounded rect ───

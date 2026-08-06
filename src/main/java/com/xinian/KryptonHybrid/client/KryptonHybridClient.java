@@ -2,6 +2,7 @@ package com.xinian.KryptonHybrid.client;
 
 import com.xinian.KryptonHybrid.KryptonFabricConfig;
 import com.xinian.KryptonHybrid.client.overlay.KryptonHudOverlay;
+import com.xinian.KryptonHybrid.client.ui.UITheme;
 import com.xinian.KryptonHybrid.shared.KryptonSharedBootstrap;
 import com.xinian.KryptonHybrid.shared.network.compression.ZstdUtil;
 import com.xinian.KryptonHybrid.shared.network.control.PacketControlState;
@@ -29,6 +30,9 @@ public final class KryptonHybridClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         KryptonFabricConfig.load();
+        // Apply persisted client GUI/HUD settings (theme, HUD visibility/anchor/…).
+        UITheme.loadFromConfig();
+        KryptonHudOverlay.loadFromConfig();
         ZstdUtil.reloadDictionary();
         KryptonSharedBootstrap.run(true);
 

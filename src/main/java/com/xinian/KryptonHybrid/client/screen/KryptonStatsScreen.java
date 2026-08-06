@@ -38,7 +38,7 @@ import java.util.List;
  */
 public final class KryptonStatsScreen extends Screen {
 
-    private enum Tab { OVERVIEW, NETWORK, COMPRESSION, MODS, INSIGHTS }
+    private enum Tab { OVERVIEW, NETWORK, COMPRESSION, PLAYERS, MODS, INSIGHTS }
     private enum ModSort { BYTES, PACKETS, NAME }
 
     private StatsSnapshotPayload snap;
@@ -50,6 +50,9 @@ public final class KryptonStatsScreen extends Screen {
     private ModSort modSort = ModSort.BYTES;
     private int modScroll = 0;
     private int modListInnerX, modListInnerY, modListInnerW, modListInnerH;
+    // Players tab state
+    private int playerScroll = 0;
+    private int playerListInnerX, playerListInnerY, playerListInnerW, playerListInnerH;
     private int lastMouseX;
     private int lastMouseY;
     private List<Component> summaryTooltip;
@@ -164,6 +167,7 @@ public final class KryptonStatsScreen extends Screen {
             case OVERVIEW -> buildOverview(left, contentTop, width, height, gap, singleColumn);
             case NETWORK -> buildNetwork(left, contentTop, width, height, gap, singleColumn);
             case COMPRESSION -> buildCompression(left, contentTop, width, height);
+            case PLAYERS -> buildPlayers(left, contentTop, width, height);
             case MODS -> buildMods(left, contentTop, width, height);
             case INSIGHTS -> buildInsights(left, contentTop, width, height);
         }
@@ -329,6 +333,75 @@ public final class KryptonStatsScreen extends Screen {
                 .setTitle(translate("gui.krypton_hybrid.section.per_mod"));
         p.addEntry(this::drawModsContent);
         activePanels.add(p);
+    }
+
+    private void buildPlayers(int left, int top, int width, int height) {
+        MCPanel p = new MCPanel(left, top, width, height)
+                .setTitle(translate("gui.krypton_hybrid.section.players"));
+        p.addEntry(this::drawPlayersContent);
+        activePanels.add(p);
+    }
+
+    /**
+     * Renders the list of clients that exchanged the Krypton hello (modded
+     * clients connected to this server).
+     */
+    private void drawPlayersContent(Gfx g, int x, int y, int w, int h) {
+        var c = UITheme.colors();
+
+        String header = Component.translatable("gui.krypton_hybrid.players.header",
+                snap.players().size()).getString();
+        g.text(this.font, header, x, y + 4, c.textSecondary(), false);
+
+        int listTop = y + lineH() + 6;
+        int listBottom = y + h;
+        int listH = listBottom - listTop;
+        playerListInnerX = x;
+        playerListInnerY = listTop;
+        playerListInnerW = w;
+        playerListInnerH = listH;
+
+        List<StatsSnapshotPayload.PlayerEntry> data = snap.players();
+        int rowH = lineH() + 8;
+        int totalRows = data.size();
+        int visibleRows = Math.max(1, listH / rowH);
+        int maxScroll = Math.max(0, totalRows - visibleRows);
+        if (playerScroll > maxScroll) playerScroll = maxScroll;
+        if (playerScroll < 0) playerScroll = 0;
+
+        if (totalRows == 0) {
+            g.text(this.font, Component.translatable("gui.krypton_hybrid.players.empty").getString(),
+                    x, listTop + 4, c.textMuted(), false);
+            return;
+        }
+
+        boolean hasScrollbar = totalRows > visibleRows;
+        int rowW = w - (hasScrollbar ? 8 : 0);
+        int rowsToDraw = Math.min(visibleRows, totalRows - playerScroll);
+
+        g.enableScissor(x, listTop, x + rowW, listBottom);
+        for (int i = 0; i < rowsToDraw; i++) {
+            int idx = playerScroll + i;
+            StatsSnapshotPayload.PlayerEntry e = data.get(idx);
+            int ry = listTop + i * rowH;
+
+            if ((idx & 1) == 0) {
+                UITheme.fillRoundedRect(g, x, ry, rowW, rowH - 2, 3,
+                        UITheme.withAlpha(c.widgetBg(), 0x60));
+            }
+
+            g.text(this.font, truncate(e.name(), Math.max(24, rowW - 16)),
+                    x + 4, ry + 2, c.textPrimary(), false);
+        }
+        g.disableScissor();
+
+        if (hasScrollbar) {
+            int trackX = x + w - 4;
+            UITheme.fillRoundedRect(g, trackX, listTop, 3, listH, 1, c.scrollbarTrack());
+            int thumbH = Math.max(14, listH * visibleRows / totalRows);
+            int thumbY = listTop + (listH - thumbH) * playerScroll / Math.max(1, maxScroll);
+            UITheme.fillRoundedRect(g, trackX, thumbY, 3, thumbH, 1, c.scrollbarThumb());
+        }
     }
 
     private void buildInsights(int left, int top, int width, int height) {
@@ -799,6 +872,13 @@ public final class KryptonStatsScreen extends Screen {
             if (modScroll < 0) modScroll = 0;
             return true;
         }
+        if (currentTab == Tab.PLAYERS
+                && mouseX >= playerListInnerX && mouseX <= playerListInnerX + playerListInnerW
+                && mouseY >= playerListInnerY && mouseY <= playerListInnerY + playerListInnerH) {
+            playerScroll -= (int) Math.signum(scrollY);
+            if (playerScroll < 0) playerScroll = 0;
+            return true;
+        }
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
@@ -961,6 +1041,7 @@ public final class KryptonStatsScreen extends Screen {
             case OVERVIEW -> "gui.krypton_hybrid.tab.overview";
             case NETWORK -> "gui.krypton_hybrid.tab.network";
             case COMPRESSION -> "gui.krypton_hybrid.tab.compression";
+            case PLAYERS -> "gui.krypton_hybrid.tab.players";
             case MODS -> "gui.krypton_hybrid.tab.mods";
             case INSIGHTS -> "gui.krypton_hybrid.tab.insights";
         };

@@ -286,6 +286,25 @@ public final class KryptonConfig {
      */
     public static volatile boolean viaCompatibilityEnabled = true;
 
+    // --- Client GUI / HUD settings (persisted to config/krypton_hybrid.json
+    //     by KryptonFabricConfig; the client applies them to the HUD overlay
+    //     and theme at startup) ---
+
+    /** Whether the in-game HUD overlay is visible. */
+    public static volatile boolean hudVisible = false;
+
+    /** HUD corner anchor: one of {@code TOP_LEFT/TOP_RIGHT/BOTTOM_LEFT/BOTTOM_RIGHT}. */
+    public static volatile String hudAnchor = "TOP_RIGHT";
+
+    /** Whether the HUD shows the top-mod traffic line. */
+    public static volatile boolean hudShowTopMod = true;
+
+    /** HUD auto-refresh interval in milliseconds (minimum 500). */
+    public static volatile long hudRefreshIntervalMs = 2000L;
+
+    /** Stats UI theme: {@code DARK} or {@code LIGHT}. */
+    public static volatile String uiThemeMode = "DARK";
+
     /** Whether the Delayed Chunk Cache is active. Default: {@code true}. */
     public static volatile boolean dccEnabled = true;
 

@@ -142,7 +142,8 @@ public final class KryptonHybrid implements ModInitializer {
         ServerPlayNetworking.registerGlobalReceiver(StatsRequestPayload.TYPE, (payload, context) ->
                 context.server().execute(() -> {
                     ServerPlayer player = context.player();
-                    ServerPlayNetworking.send(player, StatsSnapshotPayload.current());
+                    ServerPlayNetworking.send(player, StatsSnapshotPayload.current(false,
+                            KryptonStatsCommand.playerEntries(context.server())));
                 }));
     }
 }

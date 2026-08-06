@@ -1,8 +1,10 @@
 package com.xinian.KryptonHybrid.client.overlay;
 
+import com.xinian.KryptonHybrid.KryptonFabricConfig;
 import com.xinian.KryptonHybrid.client.KryptonStatsClientController;
 import com.xinian.KryptonHybrid.client.ui.Gfx;
 import com.xinian.KryptonHybrid.client.ui.UITheme;
+import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
 import net.minecraft.client.Minecraft;
@@ -39,12 +41,12 @@ public final class KryptonHudOverlay {
 
     private static boolean visible = false;
     public static boolean isVisible() { return visible; }
-    public static void setVisible(boolean v) { visible = v; }
-    public static void toggleVisible() { visible = !visible; }
+    public static void setVisible(boolean v) { visible = v; persist(); }
+    public static void toggleVisible() { visible = !visible; persist(); }
     public static long autoRefreshIntervalMs() { return autoRefreshIntervalMs; }
-    public static void setAutoRefreshIntervalMs(long value) { autoRefreshIntervalMs = Math.max(500L, value); }
+    public static void setAutoRefreshIntervalMs(long value) { autoRefreshIntervalMs = Math.max(500L, value); persist(); }
     public static HudAnchor anchor() { return anchor; }
-    public static void setAnchor(HudAnchor value) { anchor = value; }
+    public static void setAnchor(HudAnchor value) { anchor = value; persist(); }
     public static void cycleAnchor() {
         anchor = switch (anchor) {
             case TOP_LEFT -> HudAnchor.TOP_RIGHT;
@@ -52,10 +54,35 @@ public final class KryptonHudOverlay {
             case BOTTOM_RIGHT -> HudAnchor.BOTTOM_LEFT;
             case BOTTOM_LEFT -> HudAnchor.TOP_LEFT;
         };
+        persist();
     }
     public static boolean showTopMod() { return showTopMod; }
-    public static void setShowTopMod(boolean value) { showTopMod = value; }
-    public static void toggleShowTopMod() { showTopMod = !showTopMod; }
+    public static void setShowTopMod(boolean value) { showTopMod = value; persist(); }
+    public static void toggleShowTopMod() { showTopMod = !showTopMod; persist(); }
+
+    /**
+     * Applies the persisted client GUI/HUD settings from {@link KryptonConfig}
+     * (called at client startup, after the config file has been loaded).
+     */
+    public static void loadFromConfig() {
+        visible = KryptonConfig.hudVisible;
+        showTopMod = KryptonConfig.hudShowTopMod;
+        autoRefreshIntervalMs = Math.max(500L, KryptonConfig.hudRefreshIntervalMs);
+        try {
+            anchor = HudAnchor.valueOf(KryptonConfig.hudAnchor);
+        } catch (RuntimeException ignored) {
+            anchor = HudAnchor.TOP_RIGHT;
+        }
+    }
+
+    /** Writes the current HUD settings back into {@link KryptonConfig} and persists them. */
+    private static void persist() {
+        KryptonConfig.hudVisible = visible;
+        KryptonConfig.hudShowTopMod = showTopMod;
+        KryptonConfig.hudAnchor = anchor.name();
+        KryptonConfig.hudRefreshIntervalMs = autoRefreshIntervalMs;
+        KryptonFabricConfig.save();
+    }
 
     //#if MC >= 26.1
     /** Called from a Hud.extractRenderState mixin. */

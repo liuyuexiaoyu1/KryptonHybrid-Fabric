@@ -193,5 +193,9 @@
   "hud.krypton_hybrid.tx": "TX %1$s/s",
   "hud.krypton_hybrid.rx": "RX %1$s/s",
   "hud.krypton_hybrid.saved": "Saved %1$s",
-  "hud.krypton_hybrid.top_mod": "▶ %1$s"
+  "hud.krypton_hybrid.top_mod": "▶ %1$s",
+  "gui.krypton_hybrid.tab.players": "Players",
+  "gui.krypton_hybrid.section.players": "Players",
+  "gui.krypton_hybrid.players.header": "Online players: %1$s",
+  "gui.krypton_hybrid.players.empty": "No players online"
 }
