@@ -1,6 +1,7 @@
 package com.xinian.KryptonHybrid.mixin.network.microopt;
 
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
+import com.xinian.KryptonHybrid.shared.KryptonSharedBootstrap;
 import com.xinian.KryptonHybrid.shared.network.security.SecurityMetrics;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
@@ -96,7 +97,7 @@ public abstract class FriendlyByteBufMixin extends ByteBuf {
 
     @Inject(method = "readUtf(I)Ljava/lang/String;", at = @At("HEAD"))
     private void readUtf$kryptonGuard(int maxLength, CallbackInfoReturnable<String> cir) {
-        if (!KryptonConfig.securityEnabled || !KryptonConfig.securityReadLimitsEnabled) {
+        if (!KryptonConfig.securityEnabled || !KryptonConfig.securityReadLimitsEnabled || !KryptonSharedBootstrap.isServerRunning()) {
             return;
         }
         int hardLimit = KryptonConfig.securityMaxStringChars;
@@ -108,7 +109,7 @@ public abstract class FriendlyByteBufMixin extends ByteBuf {
 
     @Inject(method = "readByteArray(I)[B", at = @At("HEAD"), cancellable = true)
     private void readByteArray$kryptonGuard(int maxLength, CallbackInfoReturnable<byte[]> cir) {
-        if (!KryptonConfig.securityEnabled || !KryptonConfig.securityReadLimitsEnabled) {
+        if (!KryptonConfig.securityEnabled || !KryptonConfig.securityReadLimitsEnabled || !KryptonSharedBootstrap.isServerRunning()) {
             return;
         }
 
@@ -129,7 +130,7 @@ public abstract class FriendlyByteBufMixin extends ByteBuf {
             IntFunction<C> collectionFactory,
             StreamDecoder<? super FriendlyByteBuf, T> elementReader,
             CallbackInfoReturnable<C> cir) {
-        if (!KryptonConfig.securityEnabled || !KryptonConfig.securityReadLimitsEnabled) {
+        if (!KryptonConfig.securityEnabled || !KryptonConfig.securityReadLimitsEnabled || !KryptonSharedBootstrap.isServerRunning()) {
             return;
         }
 
@@ -154,7 +155,7 @@ public abstract class FriendlyByteBufMixin extends ByteBuf {
             StreamDecoder<? super FriendlyByteBuf, K> keyReader,
             StreamDecoder<? super FriendlyByteBuf, V> valueReader,
             CallbackInfoReturnable<M> cir) {
-        if (!KryptonConfig.securityEnabled || !KryptonConfig.securityReadLimitsEnabled) {
+        if (!KryptonConfig.securityEnabled || !KryptonConfig.securityReadLimitsEnabled || !KryptonSharedBootstrap.isServerRunning()) {
             return;
         }
 
@@ -178,7 +179,7 @@ public abstract class FriendlyByteBufMixin extends ByteBuf {
             StreamDecoder<? super FriendlyByteBuf, K> keyReader,
             StreamDecoder<? super FriendlyByteBuf, V> valueReader,
             CallbackInfoReturnable<Map<K, V>> cir) {
-        if (!KryptonConfig.securityEnabled || !KryptonConfig.securityReadLimitsEnabled) {
+        if (!KryptonConfig.securityEnabled || !KryptonConfig.securityReadLimitsEnabled || !KryptonSharedBootstrap.isServerRunning()) {
             return;
         }
 
@@ -199,7 +200,7 @@ public abstract class FriendlyByteBufMixin extends ByteBuf {
 
     @Inject(method = "readWithCount", at = @At("HEAD"), cancellable = true)
     private void readWithCount$kryptonGuard(Consumer<FriendlyByteBuf> reader, CallbackInfo ci) {
-        if (!KryptonConfig.securityEnabled || !KryptonConfig.securityReadLimitsEnabled) {
+        if (!KryptonConfig.securityEnabled || !KryptonConfig.securityReadLimitsEnabled || !KryptonSharedBootstrap.isServerRunning()) {
             return;
         }
 

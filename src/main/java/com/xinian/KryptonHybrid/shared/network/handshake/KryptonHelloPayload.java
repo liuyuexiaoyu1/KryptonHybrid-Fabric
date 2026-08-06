@@ -2,6 +2,7 @@ package com.xinian.KryptonHybrid.shared.network.handshake;
 
 import io.netty.buffer.ByteBuf;
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
+import com.xinian.KryptonHybrid.shared.KryptonSharedBootstrap;
 import com.xinian.KryptonHybrid.shared.ViaCompat;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.SharedConstants;
@@ -62,15 +63,27 @@ public record KryptonHelloPayload(int featureFlags) implements CustomPacketPaylo
                 && !ViaCompat.isSameVersion(channel, SharedConstants.getProtocolVersion())) {
             return new KryptonHelloPayload(0);
         }
+        // Server-managed feature decisions: the on/off of every feature is
+        // decided by the server (its own config, broadcast in the hello, gated
+        // by the write-side intersection).  A plain client connecting to a
+        // remote server must NOT apply its local config — it advertises all
+        // features it can handle and lets the server pick.  Only when a server
+        // runs in this process (dedicated, or integrated/LAN) does the local
+        // config govern the advertisement.
+        boolean serverContext = KryptonSharedBootstrap.isServerRunning();
         int flags = 0;
-        if (KryptonConfig.blockEntityDeltaEnabled) {
+        if (serverContext && KryptonConfig.blockEntityDeltaEnabled) {
             flags |= FEATURE_BLOCK_ENTITY_DELTA;
         }
-        if (KryptonConfig.chunkOptEnabled) {
+        if (serverContext && KryptonConfig.chunkOptEnabled) {
             flags |= FEATURE_CHUNK_DATA;
         }
-        if (KryptonConfig.lightOptEnabled) {
+        if (serverContext && KryptonConfig.lightOptEnabled) {
             flags |= FEATURE_LIGHT_DATA;
+        }
+        if (!serverContext) {
+            // Client: advertise everything, the server decides.
+            flags |= FEATURE_BLOCK_ENTITY_DELTA | FEATURE_CHUNK_DATA | FEATURE_LIGHT_DATA;
         }
         if ((flags & (FEATURE_CHUNK_DATA | FEATURE_LIGHT_DATA)) != 0) {
             flags |= FEATURE_WIRE_V2;

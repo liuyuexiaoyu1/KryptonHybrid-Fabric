@@ -1,6 +1,7 @@
 package com.xinian.KryptonHybrid.shared.network.security;
 
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
+import com.xinian.KryptonHybrid.shared.KryptonSharedBootstrap;
 import io.netty.channel.Channel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +52,10 @@ public final class DecompressionBombGuard {
             throws DecompressionBombException {
 
         if (!KryptonConfig.securityEnabled) return true;
+        // Server-managed security only applies while a server runs in this
+        // process (dedicated, or integrated/LAN).  A plain client connecting to
+        // a remote server must not apply its local config to server traffic.
+        if (!KryptonSharedBootstrap.isServerRunning()) return true;
 
 
         int maxBytes = KryptonConfig.securityMaxDecompressedBytes;

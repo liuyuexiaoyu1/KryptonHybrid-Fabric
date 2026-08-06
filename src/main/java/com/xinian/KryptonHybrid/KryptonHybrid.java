@@ -20,6 +20,7 @@ import com.xinian.KryptonHybrid.shared.network.security.MotdCache;
 import io.netty.channel.Channel;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerConfigurationConnectionEvents;
@@ -46,6 +47,13 @@ public final class KryptonHybrid implements ModInitializer {
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
                 KryptonStatsCommand.register(dispatcher));
+
+        // Track whether a MinecraftServer runs in this process (dedicated, or an
+        // integrated server inside a client).  Server-managed security features
+        // are gated on this: a plain client connecting to a remote server must
+        // not apply its own local config to the server's traffic.
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> KryptonSharedBootstrap.setServerRunning(true));
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> KryptonSharedBootstrap.setServerRunning(false));
 
         // Silent Zstd dictionary auto-training from captured outbound traffic
         ServerTickEvents.END_SERVER_TICK.register(ZstdAutoTrainer::tick);

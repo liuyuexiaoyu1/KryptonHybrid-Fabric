@@ -9,8 +9,8 @@ public final class ViaFabricAccess {
 
     public static int getProtocolVersion(Channel channel) {
         Object decoder = channel.pipeline().get("via-decoder");
-        if (decoder instanceof FabricDecodeHandler handler && handler.connection() != null) {
-            return handler.connection().getProtocolInfo().getProtocolVersion();
+        if (decoder instanceof FabricDecodeHandler handler && handler.getInfo() != null) {
+            return handler.getInfo().getProtocolInfo().getProtocolVersion();
         }
         return -1;
     }
