@@ -15,6 +15,13 @@ public final class PacketControlState {
     private volatile boolean helloNegotiated;
     private volatile int remoteFeatureFlags;
 
+    /**
+     * The feature flags this side advertised in its KryptonHelloPayload.
+     * Write-side gating requires both this side's and the remote side's flag
+     * (a feature is only used when both ends agreed on it).
+     */
+    private volatile int localFeatureFlags;
+
     private PacketControlState() {}
 
     public static PacketControlState get(Channel channel) {
@@ -58,6 +65,19 @@ public final class PacketControlState {
         this.helloAvailable = true;
         this.helloNegotiated = true;
         this.remoteFeatureFlags = remoteFeatureFlags;
+    }
+
+    public int getLocalFeatureFlags() {
+        return this.localFeatureFlags;
+    }
+
+    public void setLocalFeatureFlags(int localFeatureFlags) {
+        this.localFeatureFlags = localFeatureFlags;
+    }
+
+    /** True when this side advertised the given feature flag in its hello. */
+    public boolean supportsLocalFeature(int featureFlag) {
+        return (this.localFeatureFlags & featureFlag) != 0;
     }
 
 

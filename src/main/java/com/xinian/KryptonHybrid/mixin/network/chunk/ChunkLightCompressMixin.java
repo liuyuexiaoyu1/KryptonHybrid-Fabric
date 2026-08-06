@@ -3,6 +3,7 @@ package com.xinian.KryptonHybrid.mixin.network.chunk;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData;
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
+import com.xinian.KryptonHybrid.shared.network.codec.KryptonWireVariant;
 import com.xinian.KryptonHybrid.shared.network.control.KryptonWireFormat;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -36,8 +37,9 @@ import java.util.List;
  * positive, the {@code write()} method is replaced with a Krypton-aware format
  * identified by a leading {@code 0x4B} ('K') marker byte:</p>
  * <pre>
- *   [0x4B]           鈥?Krypton marker (1 byte)
- *   [skyYMask]       鈥?BitSet (FriendlyByteBuf.writeBitSet)
+ *   [0x4B]           Krypton marker (1 byte)
+ *   [variantTag]     KryptonWireVariant tag (1 byte)
+ *   [skyYMask]       BitSet (FriendlyByteBuf.writeBitSet)
  *   [blockYMask]     鈥?BitSet
  *   [emptySkyYMask]    BitSet
  *   [emptyBlockYMask]  BitSet
@@ -104,6 +106,7 @@ public abstract class ChunkLightCompressMixin {
         if (2048L * uniformCount + rawCount <= 1L) return;
 
         buf.writeByte(KRYPTON_MARKER);
+        buf.writeByte(KryptonWireVariant.runtimeVariant().tag());
         buf.writeBitSet(this.skyYMask);
         buf.writeBitSet(this.blockYMask);
         buf.writeBitSet(this.emptySkyYMask);
@@ -154,4 +157,3 @@ public abstract class ChunkLightCompressMixin {
         return true;
     }
 }
-

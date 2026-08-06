@@ -7,6 +7,7 @@ import com.xinian.KryptonHybrid.mixin.network.pipeline.IServerCommonListenerAcce
 import com.xinian.KryptonHybrid.shared.network.pipeline.ZstdUpgradeExtension;
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import com.xinian.KryptonHybrid.shared.KryptonSharedBootstrap;
+import com.xinian.KryptonHybrid.shared.ViaCompat;
 import com.xinian.KryptonHybrid.shared.network.compression.ZstdAutoTrainer;
 import com.xinian.KryptonHybrid.shared.network.compression.ZstdUtil;
 import com.xinian.KryptonHybrid.shared.network.control.PacketControlState;
@@ -16,6 +17,7 @@ import com.xinian.KryptonHybrid.shared.network.payload.KryptonCompressionReadyPa
 import com.xinian.KryptonHybrid.shared.network.payload.StatsRequestPayload;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
 import com.xinian.KryptonHybrid.shared.network.security.MotdCache;
+import io.netty.channel.Channel;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -23,6 +25,7 @@ import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerConfigurationConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerConfigurationNetworking;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.SharedConstants;
 import net.minecraft.network.Connection;
 import net.minecraft.server.level.ServerPlayer;
 import org.slf4j.Logger;
@@ -77,8 +80,12 @@ public final class KryptonHybrid implements ModInitializer {
         ServerConfigurationConnectionEvents.CONFIGURE.register((handler, server) -> {
             if (ServerConfigurationNetworking.canSend(handler, KryptonHelloPayload.TYPE)) {
                 Connection connection = ((IServerCommonListenerAccessor) handler).krypton$getConnection();
-                PacketControlState.get(KryptonConnectionUtil.channel(connection)).markHelloAvailable();
-                ServerConfigurationNetworking.send(handler, KryptonHelloPayload.current());
+                Channel channel = KryptonConnectionUtil.channel(connection);
+                PacketControlState state = PacketControlState.get(channel);
+                state.markHelloAvailable();
+                KryptonHelloPayload hello = KryptonHelloPayload.current(channel);
+                state.setLocalFeatureFlags(hello.featureFlags());
+                ServerConfigurationNetworking.send(handler, hello);
 
                 // Push the current Zstd dictionary so the client applies the same
                 // dictionary before compression setup. Newly trained dictionaries
@@ -96,7 +103,18 @@ public final class KryptonHybrid implements ModInitializer {
             //#else
             //$$ Connection connection = ((IServerCommonListenerAccessor) context.networkHandler()).krypton$getConnection();
             //#endif
-            PacketControlState.get(KryptonConnectionUtil.channel(connection)).markHelloNegotiated(payload.featureFlags());
+            PacketControlState state = PacketControlState.get(KryptonConnectionUtil.channel(connection));
+            // Via compatibility (defensive second gate): when Via is present and
+            // the version it negotiates for this connection differs from this
+            // server's runtime, Via translates the stream and cannot understand
+            // the custom wire — null the negotiated features so the write-side
+            // intersection gating falls back to vanilla (zstd stays, it is
+            // Via-transparent).  Same-version connections keep everything.
+            int negotiatedFlags = KryptonHelloPayload.isViaPresent()
+                    && !ViaCompat.isSameVersion(KryptonConnectionUtil.channel(connection),
+                            SharedConstants.getProtocolVersion())
+                    ? 0 : payload.featureFlags();
+            state.markHelloNegotiated(negotiatedFlags);
         });
 
         // Client has applied the dictionary and is about to enable compression:

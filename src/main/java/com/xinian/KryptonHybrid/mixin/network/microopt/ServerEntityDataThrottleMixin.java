@@ -185,8 +185,15 @@ public abstract class ServerEntityDataThrottleMixin {
     private List<SynchedEntityData.DataValue<?>> krypton$filterUnchanged(
             List<SynchedEntityData.DataValue<?>> dirtyEntries) {
         List<SynchedEntityData.DataValue<?>> result = new ArrayList<>(dirtyEntries.size());
+        int sharedFlagsId = EntityAccessor.getDataSharedFlagsId().id();
 
         for (SynchedEntityData.DataValue<?> entry : dirtyEntries) {
+            if (entry.id() == sharedFlagsId) {
+                result.add(entry);
+                krypton$lastBroadcastValues.put(entry.id(), entry.value());
+                continue;
+            }
+
             Object previousValue = krypton$lastBroadcastValues.get(entry.id());
             Object currentValue  = entry.value();
 

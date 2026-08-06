@@ -29,6 +29,16 @@ public class MinecraftCompressEncoder extends MessageToByteEncoder<ByteBuf> {
 
   @Override
   protected void encode(ChannelHandlerContext ctx, ByteBuf msg, ByteBuf out) throws Exception {
+    // Send-side check: this connection received a Zstd frame, so the peer is
+    // Krypton-modded — replace this zlib encoder with a Zstd one and encode the
+    // current packet with Zstd immediately (no one-frame zlib delay).
+    if (ctx.channel().attr(ZstdCompressDecoder.KRYPTON_ZSTD_SEEN).get() == Boolean.TRUE) {
+      ZstdCompressEncoder zstd = new ZstdCompressEncoder(this.threshold, ZstdUtil.createCompressor());
+      ctx.channel().pipeline().replace("compress", "compress", zstd);
+      zstd.krypton$encodeTo(ctx, msg, out);
+      return;
+    }
+
     FriendlyByteBuf wrappedBuf = new FriendlyByteBuf(out);
     int uncompressed = msg.readableBytes();
     int startWireIndex = out.writerIndex();

@@ -105,6 +105,16 @@ public class ZstdCompressEncoder extends MessageToByteEncoder<ByteBuf> {
 
     @Override
     protected void encode(ChannelHandlerContext ctx, ByteBuf msg, ByteBuf out) throws Exception {
+        krypton$encodeTo(ctx, msg, out);
+    }
+
+    /**
+     * Public entry point of the actual encode logic, callable from the zlib
+     * encoder upgrade path ({@code MinecraftCompressEncoder} /
+     * {@code CompressionEncoderMixin}) so the packet that triggers the switch is
+     * itself Zstd-encoded instead of being delayed by one frame.
+     */
+    public void krypton$encodeTo(ChannelHandlerContext ctx, ByteBuf msg, ByteBuf out) throws Exception {
         FriendlyByteBuf wrappedOut = new FriendlyByteBuf(out);
         int uncompressedSize = msg.readableBytes();
         int startWireIndex = out.writerIndex();
@@ -342,8 +352,7 @@ public class ZstdCompressEncoder extends MessageToByteEncoder<ByteBuf> {
      * the compressed output always fits without reallocation.</p>
      */
     @Override
-    protected ByteBuf allocateBuffer(ChannelHandlerContext ctx, ByteBuf msg, boolean preferDirect)
-            throws Exception {
+    protected ByteBuf allocateBuffer(ChannelHandlerContext ctx, ByteBuf msg, boolean preferDirect) {
         int initialSize = 5 + ZstdUtil.maxCompressedLength(msg.readableBytes());
         return ctx.alloc().directBuffer(initialSize);
     }

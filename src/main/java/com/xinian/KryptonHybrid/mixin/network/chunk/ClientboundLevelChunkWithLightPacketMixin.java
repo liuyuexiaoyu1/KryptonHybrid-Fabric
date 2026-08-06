@@ -14,6 +14,7 @@ import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
 import net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData;
 import net.minecraft.world.level.levelgen.Heightmap;
 import com.xinian.KryptonHybrid.shared.network.chunk.ChunkDataCodec;
+import com.xinian.KryptonHybrid.shared.network.codec.KryptonWireVariant;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -62,6 +63,16 @@ public abstract class ClientboundLevelChunkWithLightPacketMixin {
         }
         buf.readByte(); // consume 0x4B marker
 
+        // Wire-v2 variant tag. This packet-object-level path only ever decodes
+        // the runtime's own variant (the socket-edge frame codec consumes the
+        // wire before it reaches this constructor whenever Via is in play), so
+        // any other tag is a protocol violation.
+        KryptonWireVariant variant = KryptonWireVariant.fromTag(buf.readByte());
+        if (variant == KryptonWireVariant.UNKNOWN || variant != KryptonWireVariant.runtimeVariant()) {
+            throw new RuntimeException("Krypton chunk data variant mismatch: got " + variant
+                    + ", expected " + KryptonWireVariant.runtimeVariant());
+        }
+
         // --- Heightmaps (XOR-delta → CompoundTag) ---
         CompoundTag heightmaps = ChunkDataCodec.readHeightmaps(buf);
 
@@ -73,24 +84,16 @@ public abstract class ClientboundLevelChunkWithLightPacketMixin {
         byte[] blocksData = new byte[blocksLen];
         buf.readBytes(blocksData);
 
-        // --- Biome data (skip-scan to find total byte length, then bulk-read) ---
-        int sectionCount = buf.readVarInt();
-        ByteBuf peekSlice = buf.slice(); // independent reader index, shares backing data
-        for (int i = 0; i < sectionCount; i++) {
-            byte flag = peekSlice.readByte();
-            if (flag == ChunkDataCodec.BIOME_SINGLE_VALUE) {
-                VarInt.read(peekSlice);
-            } else {
-                int len = VarInt.read(peekSlice);
-                peekSlice.skipBytes(len);
-            }
+        // --- Biome data (wire-v2: explicit byte length) ---
+        int biomesLen = buf.readVarInt();
+        if (biomesLen > 2097152) {
+            throw new RuntimeException("Chunk Packet trying to allocate too much memory on read.");
         }
-        int biomesLen = peekSlice.readerIndex();
         byte[] biomesData = new byte[biomesLen];
         buf.readBytes(biomesData);
 
         // --- Merge blocks + biomes into vanilla section buffer ---
-        byte[] vanillaBuffer = ChunkDataCodec.mergeSectionBuffer(blocksData, biomesData, sectionCount);
+        byte[] vanillaBuffer = ChunkDataCodec.mergeSectionBuffer(blocksData, biomesData, variant);
 
         // --- Block entities: decode from original buf, re-encode to vanilla buf ---
         List<ClientboundLevelChunkPacketData.BlockEntityInfo> blockEntities =
@@ -146,6 +149,12 @@ public abstract class ClientboundLevelChunkWithLightPacketMixin {
         }
         buf.readByte();
 
+        // Wire-v2 variant tag (see readChunkData$krypton for the guard rationale).
+        KryptonWireVariant lightVariant = KryptonWireVariant.fromTag(buf.readByte());
+        if (lightVariant == KryptonWireVariant.UNKNOWN || lightVariant != KryptonWireVariant.runtimeVariant()) {
+            throw new RuntimeException("Krypton light data variant mismatch: got " + lightVariant
+                    + ", expected " + KryptonWireVariant.runtimeVariant());
+        }
 
         BitSet skyYMask      = buf.readBitSet();
         BitSet blockYMask    = buf.readBitSet();

@@ -7,6 +7,7 @@ import io.netty.buffer.Unpooled;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.game.ClientboundLightUpdatePacket;
 import net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData;
+import com.xinian.KryptonHybrid.shared.network.codec.KryptonWireVariant;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -49,6 +50,15 @@ public abstract class ClientboundLightUpdatePacketMixin {
         }
         buf.readByte();
 
+        // Wire-v2 variant tag. This packet-object-level path only ever decodes
+        // the runtime's own variant (the socket-edge frame codec consumes the
+        // wire before it reaches this constructor whenever Via is in play), so
+        // any other tag is a protocol violation.
+        KryptonWireVariant variant = KryptonWireVariant.fromTag(buf.readByte());
+        if (variant == KryptonWireVariant.UNKNOWN || variant != KryptonWireVariant.runtimeVariant()) {
+            throw new RuntimeException("Krypton light data variant mismatch: got " + variant
+                    + ", expected " + KryptonWireVariant.runtimeVariant());
+        }
 
         BitSet skyYMask     = buf.readBitSet();
         BitSet blockYMask   = buf.readBitSet();

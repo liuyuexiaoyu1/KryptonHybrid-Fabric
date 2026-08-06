@@ -22,6 +22,14 @@ repositories {
 	maven {url = 'https://maven.fallenbreath.me/releases'
 		content {includeGroupAndSubgroups("me.fallenbreath")}
 	}
+	maven {
+		name = 'ViaVersion'
+		url = 'https://repo.viaversion.com/'
+	}
+	maven {
+		name = 'Raphimc'
+		url = 'https://maven.raphimc.net/repository/raphimc-maven/'
+	}
 }
 
 // https://github.com/FabricMC/fabric-loader/issues/783
@@ -56,6 +64,15 @@ dependencies {
     // Krypton compression dependencies (pure java libs, no remapping needed)
     implementation include("com.github.luben:zstd-jni:${project.zstd_jni_version}")
     implementation include("com.velocitypowered:velocity-native:${project.velocity_native_version}")
+
+    // ViaVersion / ViaFabric / ViaFabricPlus — compileOnly (optional): the mod
+    // loads via-compat mixins only when the user has Via installed at runtime.
+    compileOnly "com.viaversion:viaversion:${project.via_version}"
+    compileOnly "net.raphimc:viafabric:${project.viafabric_version}"
+    compileOnly "net.raphimc:viafabricplus:${project.viafabricplus_version}"
+    // ViaFabricPlus 4.x moved to com.viaversion.viafabricplus — compile both so
+    // the via-compat protocol-version query works on 3.x and 4.x installs.
+    compileOnly "com.viaversion:viafabricplus:${project.viafabricplus_v4_version}"
 	if (!unobfuscated) {
 		// 0.2.0-o: JAVA_8 compat level, works on the Java 21 runtime used by 1.21.x
 		autoRuntimeOnly ('me.fallenbreath:mixin-auditor:0.2.0-o') {
@@ -70,8 +87,10 @@ dependencies {
 }
 
 String MIXIN_CONFIG_PATH = 'krypton_hybrid.mixins.json'
-JavaVersion JAVA_COMPATIBILITY = JavaVersion.VERSION_21
-if (unobfuscated) JAVA_COMPATIBILITY = JavaVersion.VERSION_25
+// Unified Java 25 toolchain (class version 69): required to compile against
+// ViaFabricPlus 4.x (built with Java 25) for the via-compat version query.
+// Note: runtimes must use Java 25 as well.
+JavaVersion JAVA_COMPATIBILITY = JavaVersion.VERSION_25
 
 JavaVersion MIXIN_COMPATIBILITY_LEVEL = JAVA_COMPATIBILITY
 

@@ -10,6 +10,7 @@ import com.xinian.KryptonHybrid.shared.network.compression.ZstdCompressDecoder;
 import com.xinian.KryptonHybrid.shared.network.compression.ZstdCompressEncoder;
 import com.xinian.KryptonHybrid.shared.network.compression.ZstdUtil;
 import com.xinian.KryptonHybrid.shared.network.pipeline.ZstdUpgradeExtension;
+import io.netty.handler.codec.MessageToMessageDecoder;
 import net.minecraft.network.CompressionDecoder;
 import net.minecraft.network.CompressionEncoder;
 import net.minecraft.network.Connection;
@@ -40,25 +41,66 @@ public class ConnectionMixin implements ZstdUpgradeExtension {
     /**
      * Upgrades the pipeline from Velocity/Minecraft compression to Zstd.
      * Called after the Krypton hello handshake confirms Zstd support.
+     *
+     * <p>The decoder check mirrors the "upgrade the decoder when the hello
+     * arrives" rule: a setupCompression half-upgrade already installs a Zstd
+     * decoder (with zlib fallback), so there is nothing to do here — the encoder
+     * is upgraded lazily when a Zstd frame is received. A transferred connection
+     * (fresh {@code Connection} without a login-phase setupCompression) has no
+     * decompress handler at all, so the Zstd layer is installed here.</p>
      */
     @Unique
     public void krypton$upgradeToZstd(int compressionThreshold, boolean validate) {
-        Object existingDecoder = channel.pipeline().get("decompress");
-        Object existingEncoder = channel.pipeline().get("compress");
-
-        // Remove existing Velocity/Minecraft handlers
-        if (existingDecoder != null) channel.pipeline().remove("decompress");
-        if (existingEncoder != null) channel.pipeline().remove("compress");
+        if (channel.pipeline().get("decompress") instanceof ZstdCompressDecoder) {
+            return; // decoder already Zstd (half-upgrade or previous upgrade)
+        }
 
         ZstdCompressEncoder zstdEncoder =
                 new ZstdCompressEncoder(compressionThreshold, ZstdUtil.createCompressor());
         ZstdCompressDecoder zstdDecoder =
                 new ZstdCompressDecoder(compressionThreshold, validate, ZstdUtil.createDecompressor());
 
-        channel.pipeline().addBefore("decoder", "decompress", zstdDecoder);
-        channel.pipeline().addBefore("encoder", "compress", zstdEncoder);
+        // Replace existing compressors atomically. Never remove-then-add:
+        // "decoder"/"encoder" are renamed asynchronously on 26.x (they may still
+        // be "inbound_config"/"outbound_config" placeholders here), so an add
+        // failure after a remove would leave the connection without any
+        // compressor. "splitter"/"prepender" always exist (the same anchors
+        // vanilla 26.x setupCompression uses), so they cover transferred
+        // connections that have no compression layer at all.
+        if (channel.pipeline().get("decompress") != null) {
+            channel.pipeline().replace("decompress", "decompress", zstdDecoder);
+        } else {
+            channel.pipeline().addAfter("splitter", "decompress", zstdDecoder);
+        }
+        if (channel.pipeline().get("compress") != null) {
+            channel.pipeline().replace("compress", "compress", zstdEncoder);
+        } else {
+            channel.pipeline().addAfter("prepender", "compress", zstdEncoder);
+        }
 
         channel.pipeline().fireUserEventTriggered(KryptonPipelineEvent.COMPRESSION_ENABLED);
+    }
+
+    /**
+     * Decoder-only Zstd upgrade, used by the client: installs the Zstd decoder
+     * (so inbound Zstd frames from a direct server are decoded), while the
+     * outbound encoder stays on vanilla zlib and upgrades lazily via the
+     * KRYPTON_ZSTD_SEEN frame signal.  Through a proxy the client never
+     * receives Zstd frames, so it never upgrades its encoder — keeping the
+     * client↔proxy segment vanilla-compatible.
+     */
+    @Unique
+    public void krypton$upgradeDecoderToZstd(int compressionThreshold, boolean validate) {
+        if (channel.pipeline().get("decompress") instanceof ZstdCompressDecoder) {
+            return; // already Zstd
+        }
+        ZstdCompressDecoder zstdDecoder =
+                new ZstdCompressDecoder(compressionThreshold, validate, ZstdUtil.createDecompressor());
+        if (channel.pipeline().get("decompress") != null) {
+            channel.pipeline().replace("decompress", "decompress", zstdDecoder);
+        } else {
+            channel.pipeline().addAfter("splitter", "decompress", zstdDecoder);
+        }
     }
 
     @Inject(method = "setupCompression", at = @At("HEAD"))
@@ -79,24 +121,33 @@ public class ConnectionMixin implements ZstdUpgradeExtension {
             return;
         }
 
-        // Replace the vanilla compressors with Velocity-native ones.
-        // Remove vanilla handlers first.
-        if (this.channel.pipeline().get("decompress") instanceof CompressionDecoder) {
-            this.channel.pipeline().remove("decompress");
-        }
-        if (this.channel.pipeline().get("compress") instanceof CompressionEncoder) {
-            this.channel.pipeline().remove("compress");
-        }
-
         VelocityCompressor compressor = Natives.compress.get().create(4);
 
         MinecraftCompressEncoder encoder =
                 new MinecraftCompressEncoder(compressionThreshold, compressor);
-        MinecraftCompressDecoder decoder =
-                new MinecraftCompressDecoder(compressionThreshold, validate, compressor);
 
-        channel.pipeline().addBefore("decoder", "decompress", decoder);
-        channel.pipeline().addBefore("encoder", "compress", encoder);
+        MessageToMessageDecoder<?> decoder;
+        if (ZstdUtil.isEnabled()) {
+            decoder = new ZstdCompressDecoder(compressionThreshold, validate, ZstdUtil.createDecompressor());
+        } else {
+            decoder = new MinecraftCompressDecoder(compressionThreshold, validate, compressor);
+        }
+
+        // Replace the vanilla compressors atomically (vanilla setupCompression
+        // just installed "decompress"/"compress"). Anchoring on
+        // "splitter"/"prepender" instead of "decoder"/"encoder" avoids the
+        // async-rename trap on 26.x, and replace never leaves the pipeline
+        // without a compressor.
+        if (this.channel.pipeline().get("decompress") != null) {
+            this.channel.pipeline().replace("decompress", "decompress", decoder);
+        } else {
+            this.channel.pipeline().addAfter("splitter", "decompress", decoder);
+        }
+        if (this.channel.pipeline().get("compress") != null) {
+            this.channel.pipeline().replace("compress", "compress", encoder);
+        } else {
+            this.channel.pipeline().addAfter("prepender", "compress", encoder);
+        }
 
         this.channel.pipeline().fireUserEventTriggered(KryptonPipelineEvent.COMPRESSION_ENABLED);
     }

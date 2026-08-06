@@ -163,7 +163,7 @@ public final class KryptonConfig {
     // --- Network security / independent packet control ---
 
     /** Global security kill-switch. */
-    public static volatile boolean securityEnabled = true;
+    public static volatile boolean securityEnabled = false;
 
     /** Sustained connection attempts per second per remote IP. */
     public static volatile int securityConnectionRatePerSecond = 8;
@@ -190,16 +190,12 @@ public final class KryptonConfig {
     /** Minimum compressed byte count before ratio checks become meaningful. */
     public static volatile int securityMinCompressedBytesForRatioCheck = 256;
 
-
     public static volatile int securityHandshakeTimeoutSec = 5;
     public static volatile int securityLoginTimeoutSec = 10;
     public static volatile int securityPlayTimeoutSec = 30;
 
     /** Maximum decoded frame size accepted after packet splitting. */
     public static volatile int securityMaxPacketBytes = 2 * 1024 * 1024;
-
-    /** Maximum custom-payload size accepted by policy. */
-    public static volatile int securityMaxCustomPayloadBytes = 128 * 1024;
 
     /** Enables FriendlyByteBuf read-side guardrails (disabled by default for compatibility). */
     public static volatile boolean securityReadLimitsEnabled = false;
@@ -243,8 +239,6 @@ public final class KryptonConfig {
     /** Applies the same scan guard to pre-1.7 legacy ping packets. */
     public static volatile boolean securityLegacyQueryGuardEnabled = true;
 
-    public static volatile int securityMinProtocolVersion = 3;
-    public static volatile int securityMaxProtocolVersion = 1100;
     public static volatile int securityMaxHandshakeAddressLength = 255;
 
     /** Weighted anomaly strike threshold before force-disconnect. */
@@ -281,6 +275,16 @@ public final class KryptonConfig {
      * Default: {@code true}.
      */
     public static volatile boolean lightOptEnabled = true;
+
+    /**
+     * Master switch for the via-compatibility rule: when a Via mod is loaded
+     * locally and the connection's protocol version differs from this runtime's,
+     * Krypton's custom chunk/light/block-entity encodings are disabled (only
+     * the Via-transparent zstd compression remains).  Set to {@code false} to
+     * always keep the custom features (not recommended on cross-version Via
+     * connections).  Default: {@code true}.
+     */
+    public static volatile boolean viaCompatibilityEnabled = true;
 
     /** Whether the Delayed Chunk Cache is active. Default: {@code true}. */
     public static volatile boolean dccEnabled = true;
@@ -408,11 +412,6 @@ public final class KryptonConfig {
      * Default: {@code true}.
      */
     public static volatile boolean blockEntityDeltaEnabled = true;
-
-    // --- Proxy compatibility (kept for config compatibility; no proxy mixin active) ---
-
-    public static volatile ProxyMode proxyMode = ProxyMode.NONE;
-    public static volatile String velocityForwardingSecret = "";
 
     private KryptonConfig() {}
 }

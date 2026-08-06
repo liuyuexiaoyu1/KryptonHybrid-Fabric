@@ -2,7 +2,9 @@ package com.xinian.KryptonHybrid.mixin.network.pipeline;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPipeline;
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
+import net.minecraft.network.CompressionEncoder;
 import net.minecraft.network.PacketEncoder;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
@@ -10,7 +12,9 @@ import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import com.xinian.KryptonHybrid.shared.network.broadcast.BroadcastSerializationCache;
 import com.xinian.KryptonHybrid.shared.network.broadcast.BundleEncodeContext;
 import com.xinian.KryptonHybrid.shared.network.compression.MinecraftCompressEncoder;
+import com.xinian.KryptonHybrid.shared.network.compression.ZstdCompressDecoder;
 import com.xinian.KryptonHybrid.shared.network.compression.ZstdCompressEncoder;
+import com.xinian.KryptonHybrid.shared.network.compression.ZstdUtil;
 import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 import com.xinian.KryptonHybrid.shared.network.control.PacketControlContext;
 import com.xinian.KryptonHybrid.shared.network.control.PacketControlPhase;
@@ -49,6 +53,14 @@ public class PacketEncoderMixin {
     private void kryptonfnp$cacheHitEncode(ChannelHandlerContext ctx, Packet<?> packet, ByteBuf out, CallbackInfo ci) {
         PacketControlContext.setCurrentChannel(ctx.channel());
 
+        // Send-path upgrade: if this connection has ever received a Zstd frame
+        // (the peer is Krypton-modded), make sure the outbound compressor is Zstd.
+        // This covers connections whose hello-handshake upgrade did not run (e.g.
+        // a changed/transferred connection) — the frame itself is the signal.
+        if (ctx.channel().attr(ZstdCompressDecoder.KRYPTON_ZSTD_SEEN).get() == Boolean.TRUE) {
+            kryptonfnp$ensureZstdEncoder(ctx);
+        }
+
         // Track bundle-delimiter scope for downstream forced-compression decisions.
         if (packet instanceof net.minecraft.network.protocol.BundleDelimiterPacket<?>) {
             BundleEncodeContext.onDelimiter();
@@ -67,6 +79,33 @@ public class PacketEncoderMixin {
             NetworkTrafficStats.INSTANCE.recordPacketMod(kryptonfnp$resolveModId(packet), cached.length);
             PacketControlContext.clearCurrentChannel();
             ci.cancel();
+        }
+    }
+
+    /**
+     * Replaces/installs the Zstd encoder when the connection has seen a Zstd
+     * frame but the compressor is not yet Zstd (hello-handshake upgrade may not
+     * have run on this connection). Threshold falls back to 256 (vanilla
+     * default) when the existing compressor has no getter.
+     */
+    @Unique
+    private static void kryptonfnp$ensureZstdEncoder(ChannelHandlerContext ctx) {
+        try {
+            ChannelPipeline pipeline = ctx.pipeline();
+            Object compress = pipeline.get("compress");
+            if (compress instanceof ZstdCompressEncoder) {
+                return;
+            }
+            int threshold = compress instanceof CompressionEncoder
+                    ? ((CompressionEncoder) compress).getThreshold() : 256;
+            ZstdCompressEncoder zstd = new ZstdCompressEncoder(threshold, ZstdUtil.createCompressor());
+            if (compress != null) {
+                pipeline.replace("compress", "compress", zstd);
+            } else {
+                pipeline.addAfter("prepender", "compress", zstd);
+            }
+        } catch (Throwable t) {
+            // Upgrade failure must not break packet encoding.
         }
     }
 

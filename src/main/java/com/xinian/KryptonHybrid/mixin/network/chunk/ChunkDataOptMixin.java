@@ -2,6 +2,7 @@ package com.xinian.KryptonHybrid.mixin.network.chunk;
 
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import com.xinian.KryptonHybrid.shared.network.chunk.ChunkDataCodec;
+import com.xinian.KryptonHybrid.shared.network.codec.KryptonWireVariant;
 import com.xinian.KryptonHybrid.shared.network.control.KryptonWireFormat;
 import io.netty.buffer.Unpooled;
 import net.minecraft.nbt.CompoundTag;
@@ -46,6 +47,7 @@ import java.util.Map;
  * <h3>Wire format</h3>
  * <pre>
  *   [0x4B]  Krypton chunk-data marker (1 byte)
+ *   [0x??]  KryptonWireVariant tag (1 byte) — wire-v2 self-description
  *
  *   --- Heightmaps (binary + XOR-delta) ---
  *   VarInt  entry_count
@@ -91,24 +93,6 @@ public abstract class ChunkDataOptMixin {
     @Shadow @Final private byte[] buffer;
     @Shadow @Final private List<ClientboundLevelChunkPacketData.BlockEntityInfo> blockEntitiesData;
 
-    // --- Write-side fields (populated at construction from LevelChunk) ---
-
-    /** Number of sections in the chunk, stored at construction for use in write(). */
-    @Unique private int krypton$sectionCount;
-
-    /**
-     * Extracts section metadata after the vanilla constructor has built the buffer.
-     * Stores the section count so that {@code write()} can split the buffer later.
-     */
-    @Inject(
-            method = "<init>(Lnet/minecraft/world/level/chunk/LevelChunk;)V",
-            at = @At("RETURN")
-    )
-    private void krypton$captureSectionCount(LevelChunk chunk, CallbackInfo ci) {
-        if (!KryptonConfig.chunkOptEnabled) return;
-        this.krypton$sectionCount = chunk.getSections().length;
-    }
-
     // ================================================================
     //  Write side
     // ================================================================
@@ -121,9 +105,14 @@ public abstract class ChunkDataOptMixin {
     private void krypton$writeOptimized(RegistryFriendlyByteBuf buf, CallbackInfo ci) {
         if (!KryptonConfig.chunkOptEnabled
                 || !KryptonWireFormat.canWriteCurrentChunkData()
-                || this.krypton$sectionCount <= 0) return;
+                || this.buffer.length == 0) return;
 
         buf.writeByte(KRYPTON_MARKER);
+        // Wire-v2 variant tag: makes the wire self-describing, so any runtime can
+        // decode it. The packet-object-level write path always produces the runtime
+        // variant (connection == runtime here; the socket-edge frame codec handles
+        // the other variants when Via is in play).
+        buf.writeByte(KryptonWireVariant.runtimeVariant().tag());
 
         // --- Heightmaps (convert Map<Heightmap.Types, long[]> to CompoundTag, then binary + XOR-delta) ---
         //#if MC >= 12105
@@ -136,24 +125,19 @@ public abstract class ChunkDataOptMixin {
         //$$ ChunkDataCodec.writeHeightmaps(buf, this.heightmaps);
         //#endif
 
-        // --- Split section buffer into blocks + biomes ---
-        FriendlyByteBuf blocksBuf = new FriendlyByteBuf(Unpooled.buffer(this.buffer.length));
-        FriendlyByteBuf biomesBuf = new FriendlyByteBuf(Unpooled.buffer(this.krypton$sectionCount * 4));
+        // --- Split section buffer into blocks + biomes (wire-v2: explicit
+        //     lengths instead of the section count, fully self-describing) ---
+        io.netty.buffer.ByteBuf sectionBuf = Unpooled.wrappedBuffer(this.buffer);
+        ChunkDataCodec.SectionSplit split;
         try {
-            ChunkDataCodec.splitSectionBuffer(this.buffer, this.krypton$sectionCount, blocksBuf, biomesBuf);
-
-            // Write blocks-only buffer
-            int blocksLen = blocksBuf.readableBytes();
-            buf.writeVarInt(blocksLen);
-            buf.writeBytes(blocksBuf, blocksLen);
-
-            // Write compact biome data
-            buf.writeVarInt(this.krypton$sectionCount);
-            buf.writeBytes(biomesBuf, biomesBuf.readableBytes());
+            split = ChunkDataCodec.splitSectionBuffer(sectionBuf, KryptonWireVariant.runtimeVariant());
         } finally {
-            blocksBuf.release();
-            biomesBuf.release();
+            sectionBuf.release();
         }
+        buf.writeVarInt(split.blocks().length);
+        buf.writeBytes(split.blocks());
+        buf.writeVarInt(split.biomes().length);
+        buf.writeBytes(split.biomes());
 
         // --- Block entities (unchanged) ---
         ClientboundLevelChunkPacketData.BlockEntityInfo.LIST_STREAM_CODEC.encode(buf, this.blockEntitiesData);

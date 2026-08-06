@@ -2,6 +2,9 @@ package com.xinian.KryptonHybrid.shared.network.handshake;
 
 import io.netty.buffer.ByteBuf;
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
+import com.xinian.KryptonHybrid.shared.ViaCompat;
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.SharedConstants;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 //#if MC >= 12111
@@ -24,6 +27,8 @@ public record KryptonHelloPayload(int featureFlags) implements CustomPacketPaylo
     public static final int FEATURE_CHUNK_DATA = 1;
     public static final int FEATURE_LIGHT_DATA = 1 << 1;
     public static final int FEATURE_BLOCK_ENTITY_DELTA = 1 << 2;
+    /** Wire-v2 (self-describing, variant-tagged) chunk/light format. */
+    public static final int FEATURE_WIRE_V2 = 1 << 3;
 
     public static final StreamCodec<ByteBuf, KryptonHelloPayload> STREAM_CODEC = new StreamCodec<>() {
         @Override
@@ -37,30 +42,46 @@ public record KryptonHelloPayload(int featureFlags) implements CustomPacketPaylo
         }
     };
 
-    public static KryptonHelloPayload current() {
+    /**
+     * Builds the local feature advertisement for a connection.
+     *
+     * <p><strong>Via compatibility rule:</strong> when a Via mod is loaded
+     * locally and the protocol version Via is <em>currently negotiating</em>
+     * for this connection ({@link ViaCompat}) differs from this runtime's
+     * version, Via translates the stream and cannot understand Krypton's
+     * custom chunk/light/block-entity encodings — every custom feature is
+     * dropped and only the Via-transparent zstd compression layer remains.
+     * Same-version connections keep all features even when Via is present.</p>
+     *
+     * @param channel the connection channel (needed to query Via's negotiated
+     *                protocol version); may be {@code null} (treated as
+     *                cross-version when Via is present — conservative)
+     */
+    public static KryptonHelloPayload current(io.netty.channel.Channel channel) {
+        if (isViaPresent()
+                && !ViaCompat.isSameVersion(channel, SharedConstants.getProtocolVersion())) {
+            return new KryptonHelloPayload(0);
+        }
         int flags = 0;
-        // ViaVersion / ViaFabricPlus / ViaBackwards translate packets in the client
-        // pipeline using vanilla formats — they cannot understand Krypton's custom
-        // chunk/light/block-entity encodings. When present, drop those features so
-        // the server falls back to vanilla wire formats (the server checks the
-        // received feature flags via PacketControlState.supportsRemoteFeature).
-        boolean viaCompatibility = isViaPresent();
-        if (KryptonConfig.chunkOptEnabled && !viaCompatibility) {
+        if (KryptonConfig.blockEntityDeltaEnabled) {
+            flags |= FEATURE_BLOCK_ENTITY_DELTA;
+        }
+        if (KryptonConfig.chunkOptEnabled) {
             flags |= FEATURE_CHUNK_DATA;
         }
-        if (KryptonConfig.lightOptEnabled && !viaCompatibility) {
+        if (KryptonConfig.lightOptEnabled) {
             flags |= FEATURE_LIGHT_DATA;
         }
-        if (KryptonConfig.blockEntityDeltaEnabled && !viaCompatibility) {
-            flags |= FEATURE_BLOCK_ENTITY_DELTA;
+        if ((flags & (FEATURE_CHUNK_DATA | FEATURE_LIGHT_DATA)) != 0) {
+            flags |= FEATURE_WIRE_V2;
         }
         return new KryptonHelloPayload(flags);
     }
 
-    private static boolean isViaPresent() {
-        return net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("viafabricplus")
-                || net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("viaversion")
-                || net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("viabackwards");
+    /** True when a Via mod (ViaFabricPlus / ViaFabric) is loaded locally. */
+    public static boolean isViaPresent() {
+        return FabricLoader.getInstance().isModLoaded("viafabricplus")
+                || FabricLoader.getInstance().isModLoaded("viafabric");
     }
 
     @Override
