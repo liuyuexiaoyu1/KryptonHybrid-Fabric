@@ -27,8 +27,8 @@ repositories {
 		url = 'https://repo.viaversion.com/'
 	}
 	maven {
-		name = 'Raphimc'
-		url = 'https://maven.raphimc.net/repository/raphimc-maven/'
+		name = "Modrinth"
+		url = "https://api.modrinth.com/maven"
 	}
 }
 
@@ -49,6 +49,7 @@ dependencies {
     }
     def autoImplementation = { Object... args -> processDependency(unobfuscated ? implementation(*args) : modImplementation(*args)) }
 	def autoRuntimeOnly = { Object... args -> processDependency(unobfuscated ? runtimeOnly(*args) : modRuntimeOnly(*args)) }
+	def autoCompileOnly = { Object... args -> processDependency(unobfuscated ? compileOnly(*args) : modCompileOnly(*args)) }
 	// Minecraft
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     if (!unobfuscated) {
@@ -65,14 +66,11 @@ dependencies {
     implementation include("com.github.luben:zstd-jni:${project.zstd_jni_version}")
     implementation include("com.velocitypowered:velocity-native:${project.velocity_native_version}")
 
-    // ViaVersion / ViaFabric / ViaFabricPlus — compileOnly (optional): the mod
+    // ViaFabric / ViaFabricPlus — compileOnly (optional): the mod
     // loads via-compat mixins only when the user has Via installed at runtime.
-    compileOnly "com.viaversion:viaversion:${project.via_version}"
-    compileOnly "net.raphimc:viafabric:${project.viafabric_version}"
-    compileOnly "net.raphimc:viafabricplus:${project.viafabricplus_version}"
-    // ViaFabricPlus 4.x moved to com.viaversion.viafabricplus — compile both so
-    // the via-compat protocol-version query works on 3.x and 4.x installs.
-    compileOnly "com.viaversion:viafabricplus:${project.viafabricplus_v4_version}"
+	autoCompileOnly "${project.viaversion_version}"
+	autoCompileOnly "${project.viafabric_version}"
+	autoCompileOnly "${project.viafabricplus_version}"
 	if (!unobfuscated) {
 		// 0.2.0-o: JAVA_8 compat level, works on the Java 21 runtime used by 1.21.x
 		autoRuntimeOnly ('me.fallenbreath:mixin-auditor:0.2.0-o') {

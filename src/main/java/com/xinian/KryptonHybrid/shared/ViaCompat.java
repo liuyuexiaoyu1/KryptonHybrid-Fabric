@@ -39,21 +39,12 @@ public final class ViaCompat {
         if (FabricLoader.getInstance().isModLoaded("viafabricplus")) {
             // Client: ViaFabricPlus 4.x (com.viaversion.viafabricplus).
             try {
-                int v4 = ViaFabricPlusAccessV4.getTargetProtocolVersion(channel);
+                int v4 = ViaFabricPlusAccess.getTargetProtocolVersion(channel);
                 if (v4 != -1) {
                     return v4;
                 }
             } catch (NoClassDefFoundError ignored) {
                 // ViaFabricPlus 4.x not loaded.
-            }
-            // Client: ViaFabricPlus 3.x (de.florianmichael.viafabricplus).
-            try {
-                int v3 = ViaFabricPlusAccessV3.getTargetProtocolVersion(channel);
-                if (v3 != -1) {
-                    return v3;
-                }
-            } catch (NoClassDefFoundError ignored) {
-                // ViaFabricPlus 3.x not loaded.
             }
         } else if (FabricLoader.getInstance().isModLoaded("viafabric")) {
             // Server: ViaFabric per-connection negotiated version (client version).
