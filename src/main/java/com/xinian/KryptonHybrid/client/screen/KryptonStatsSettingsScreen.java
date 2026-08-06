@@ -1,10 +1,12 @@
 package com.xinian.KryptonHybrid.client.screen;
 
+import com.xinian.KryptonHybrid.KryptonFabricConfig;
 import com.xinian.KryptonHybrid.client.overlay.KryptonHudOverlay;
 import com.xinian.KryptonHybrid.client.ui.Gfx;
 import com.xinian.KryptonHybrid.client.ui.MCButton;
 import com.xinian.KryptonHybrid.client.ui.MCPanel;
 import com.xinian.KryptonHybrid.client.ui.UITheme;
+import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 //#if MC >= 26.1
@@ -29,6 +31,7 @@ public final class KryptonStatsSettingsScreen extends Screen {
     private MCButton hudPosBtn;
     private MCButton hudRefreshBtn;
     private MCButton hudTopModBtn;
+    private MCButton guiRefreshBtn;
 
     public KryptonStatsSettingsScreen(Screen parent) {
         super(Component.translatable("gui.krypton_hybrid.settings.title"));
@@ -45,7 +48,7 @@ public final class KryptonStatsSettingsScreen extends Screen {
         clearWidgets();
 
         int panelW = Math.min(420, this.width - 24);
-        int panelH = Math.min(220, this.height - 48);
+        int panelH = Math.min(280, this.height - 48);
         int px = (this.width - panelW) / 2;
         int py = (this.height - panelH) / 2;
 
@@ -88,6 +91,13 @@ public final class KryptonStatsSettingsScreen extends Screen {
             refreshLabels();
         });
         addRenderableWidget(hudTopModBtn);
+        y += rowH + gap;
+
+        guiRefreshBtn = new MCButton(rowX, y, rowW, rowH, guiRefreshLabel(), b -> {
+            cycleGuiRefreshInterval();
+            refreshLabels();
+        });
+        addRenderableWidget(guiRefreshBtn);
 
         int closeW = Math.max(90, this.font.width(Component.translatable("gui.krypton_hybrid.button.done")) + 24);
         addRenderableWidget(new MCButton(px + panelW - closeW - 12, py + panelH - rowH - 10, closeW, rowH,
@@ -122,7 +132,7 @@ public final class KryptonStatsSettingsScreen extends Screen {
         g.fill(0, 0, this.width, this.height, c.panelBg());
 
         int panelW = Math.min(420, this.width - 24);
-        int panelH = Math.min(220, this.height - 48);
+        int panelH = Math.min(280, this.height - 48);
         int px = (this.width - panelW) / 2;
         int py = (this.height - panelH) / 2;
 
@@ -153,6 +163,7 @@ public final class KryptonStatsSettingsScreen extends Screen {
         hudPosBtn.setMessage(hudPosLabel());
         hudRefreshBtn.setMessage(hudRefreshLabel());
         hudTopModBtn.setMessage(hudTopModLabel());
+        guiRefreshBtn.setMessage(guiRefreshLabel());
     }
 
     private Component themeLabel() {
@@ -212,5 +223,28 @@ public final class KryptonStatsSettingsScreen extends Screen {
             }
         }
         KryptonHudOverlay.setAutoRefreshIntervalMs(choices[0]);
+    }
+
+    private Component guiRefreshLabel() {
+        long ms = KryptonConfig.guiRefreshIntervalMs;
+        String value = ms == 0L
+                ? Component.translatable("gui.krypton_hybrid.state.disabled").getString()
+                : String.format("%.1fs", ms / 1000.0);
+        return Component.translatable("gui.krypton_hybrid.settings.gui_refresh", value);
+    }
+
+    /** Cycles the GUI auto-refresh interval: off → 1s → 2s → 5s → 10s → off. */
+    private static void cycleGuiRefreshInterval() {
+        long current = KryptonConfig.guiRefreshIntervalMs;
+        long[] choices = {0L, 1000L, 2000L, 5000L, 10000L};
+        for (int i = 0; i < choices.length; i++) {
+            if (current <= choices[i]) {
+                KryptonConfig.guiRefreshIntervalMs = choices[(i + 1) % choices.length];
+                KryptonFabricConfig.save();
+                return;
+            }
+        }
+        KryptonConfig.guiRefreshIntervalMs = choices[0];
+        KryptonFabricConfig.save();
     }
 }

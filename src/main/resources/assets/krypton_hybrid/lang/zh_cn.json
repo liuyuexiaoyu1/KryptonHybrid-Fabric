@@ -107,6 +107,7 @@
   "gui.krypton_hybrid.settings.hud_visible": "HUD: %1$s",
   "gui.krypton_hybrid.settings.hud_pos": "HUD 位置: %1$s",
   "gui.krypton_hybrid.settings.hud_refresh": "HUD 刷新间隔: %1$s",
+  "gui.krypton_hybrid.settings.gui_refresh": "GUI 刷新间隔: %1$s",
   "gui.krypton_hybrid.settings.hud_top_mod": "Top 模组行: %1$s",
   "gui.krypton_hybrid.settings.pos.top_left": "左上",
   "gui.krypton_hybrid.settings.pos.top_right": "右上",
@@ -196,6 +197,6 @@
   "hud.krypton_hybrid.top_mod": "▶ %1$s",
   "gui.krypton_hybrid.tab.players": "玩家",
   "gui.krypton_hybrid.section.players": "玩家",
-  "gui.krypton_hybrid.players.header": "在线玩家: %1$s",
+  "gui.krypton_hybrid.players.header": "已协商的玩家: %1$s",
   "gui.krypton_hybrid.players.empty": "没有在线玩家"
 }

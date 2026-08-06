@@ -108,6 +108,7 @@
   "gui.krypton_hybrid.settings.hud_visible": "HUD: %1$s",
   "gui.krypton_hybrid.settings.hud_pos": "HUD Position: %1$s",
   "gui.krypton_hybrid.settings.hud_refresh": "HUD Refresh Interval: %1$s",
+  "gui.krypton_hybrid.settings.gui_refresh": "GUI Refresh Interval: %1$s",
   "gui.krypton_hybrid.settings.hud_top_mod": "Top mod row: %1$s",
   "gui.krypton_hybrid.settings.pos.top_left": "Top Left",
   "gui.krypton_hybrid.settings.pos.top_right": "Top Right",
@@ -196,6 +197,6 @@
   "hud.krypton_hybrid.top_mod": "▶ %1$s",
   "gui.krypton_hybrid.tab.players": "Players",
   "gui.krypton_hybrid.section.players": "Players",
-  "gui.krypton_hybrid.players.header": "Online players: %1$s",
+  "gui.krypton_hybrid.players.header": "Negotiated players: %1$s",
   "gui.krypton_hybrid.players.empty": "No players online"
 }

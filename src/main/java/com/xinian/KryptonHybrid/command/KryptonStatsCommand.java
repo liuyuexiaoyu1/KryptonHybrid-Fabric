@@ -193,7 +193,7 @@ public final class KryptonStatsCommand {
             try {
                 Channel ch = KryptonConnectionUtil.channel(
                         KryptonConnectionUtil.connection(p.connection));
-                if (!PacketControlState.get(ch).isHelloNegotiated()) {
+                if (!PacketControlState.get(ch).isHelloAvailable()) {
                     continue;
                 }
             } catch (Throwable ignored) {

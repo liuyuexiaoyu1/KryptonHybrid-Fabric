@@ -302,6 +302,9 @@ public final class KryptonConfig {
     /** HUD auto-refresh interval in milliseconds (minimum 500). */
     public static volatile long hudRefreshIntervalMs = 2000L;
 
+    /** Stats GUI auto-refresh interval in milliseconds; 0 disables auto-refresh. */
+    public static volatile long guiRefreshIntervalMs = 2000L;
+
     /** Stats UI theme: {@code DARK} or {@code LIGHT}. */
     public static volatile String uiThemeMode = "DARK";
 

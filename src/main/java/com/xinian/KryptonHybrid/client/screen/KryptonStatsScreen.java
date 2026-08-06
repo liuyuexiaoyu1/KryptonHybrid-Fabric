@@ -5,6 +5,7 @@ import com.xinian.KryptonHybrid.client.ui.Gfx;
 import com.xinian.KryptonHybrid.client.ui.MCButton;
 import com.xinian.KryptonHybrid.client.ui.MCPanel;
 import com.xinian.KryptonHybrid.client.ui.UITheme;
+import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import com.xinian.KryptonHybrid.shared.network.stats.NetworkTrafficStats;
 import com.xinian.KryptonHybrid.shared.network.payload.StatsSnapshotPayload;
 import net.minecraft.client.gui.screens.Screen;
@@ -66,6 +67,23 @@ public final class KryptonStatsScreen extends Screen {
 
     @Override
     public boolean isPauseScreen() { return false; }
+
+    /** Last auto-refresh request timestamp (GUI auto-refresh). */
+    private long lastGuiRefreshMs = 0L;
+
+    @Override
+    public void tick() {
+        super.tick();
+        long interval = KryptonConfig.guiRefreshIntervalMs;
+        if (interval <= 0L) {
+            return; // auto-refresh disabled
+        }
+        long now = System.currentTimeMillis();
+        if (now - lastGuiRefreshMs >= interval) {
+            lastGuiRefreshMs = now;
+            KryptonStatsClientController.requestFreshSnapshot();
+        }
+    }
 
     private int lineH() { return this.font.lineHeight + 2; }
 
