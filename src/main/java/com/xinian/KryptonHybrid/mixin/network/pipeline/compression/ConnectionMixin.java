@@ -22,9 +22,12 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Connection.class)
-public class ConnectionMixin implements ZstdUpgradeExtension {
+public abstract class ConnectionMixin implements ZstdUpgradeExtension {
     @Shadow
     private Channel channel;
+
+    @Shadow
+    public abstract boolean isMemoryConnection();
 
     @Unique
     private int krypton$compressionThreshold;
@@ -51,6 +54,8 @@ public class ConnectionMixin implements ZstdUpgradeExtension {
      */
     @Unique
     public void krypton$upgradeToZstd(int compressionThreshold, boolean validate) {
+        // Singleplayer/LAN (memory) connections stay fully vanilla.
+        if (this.isMemoryConnection()) return;
         if (channel.pipeline().get("decompress") instanceof ZstdCompressDecoder) {
             return; // decoder already Zstd (half-upgrade or previous upgrade)
         }
@@ -91,6 +96,8 @@ public class ConnectionMixin implements ZstdUpgradeExtension {
      */
     @Unique
     public void krypton$upgradeDecoderToZstd(int compressionThreshold, boolean validate) {
+        // Singleplayer/LAN (memory) connections stay fully vanilla.
+        if (this.isMemoryConnection()) return;
         if (channel.pipeline().get("decompress") instanceof ZstdCompressDecoder) {
             return; // already Zstd
         }

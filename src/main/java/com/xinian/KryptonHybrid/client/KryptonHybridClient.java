@@ -19,6 +19,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 //#if MC < 12108
 import net.minecraft.network.PacketSendListener;
 //#endif
+import net.minecraft.network.Connection;
 //#if MC >= 26.1
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.resources.Identifier;
@@ -38,12 +39,16 @@ public final class KryptonHybridClient implements ClientModInitializer {
 
         ClientConfigurationNetworking.registerGlobalReceiver(KryptonHelloPayload.TYPE, (payload, context) -> {
             context.client().execute(() -> {
+                Connection connection = context.client().getConnection().getConnection();
+                // Singleplayer/LAN (memory) connections stay fully vanilla: no
+                // hello reply, no feature negotiation, no zstd upgrade.
+                if (connection.isMemoryConnection()) return;
                 // Reply with per-connection features: when ViaFabricPlus is
                 // loaded and the protocol version it is currently negotiating
                 // differs from this runtime's, the via-compatibility rule drops
                 // every custom feature from the reply so the server falls back
                 // to the vanilla stream (zstd stays, it is Via-transparent).
-                Channel channel = KryptonConnectionUtil.channel(context.client().getConnection().getConnection());
+                Channel channel = KryptonConnectionUtil.channel(connection);
                 PacketControlState state = PacketControlState.get(channel);
                 KryptonHelloPayload hello = KryptonHelloPayload.current(channel);
                 state.setLocalFeatureFlags(hello.featureFlags());

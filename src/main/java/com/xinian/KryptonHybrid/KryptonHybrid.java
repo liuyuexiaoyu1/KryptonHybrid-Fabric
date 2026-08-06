@@ -88,6 +88,9 @@ public final class KryptonHybrid implements ModInitializer {
         ServerConfigurationConnectionEvents.CONFIGURE.register((handler, server) -> {
             if (ServerConfigurationNetworking.canSend(handler, KryptonHelloPayload.TYPE)) {
                 Connection connection = ((IServerCommonListenerAccessor) handler).krypton$getConnection();
+                // Singleplayer/LAN (memory) connections stay fully vanilla: no
+                // hello, no feature negotiation, no zstd upgrade.
+                if (connection.isMemoryConnection()) return;
                 Channel channel = KryptonConnectionUtil.channel(connection);
                 PacketControlState state = PacketControlState.get(channel);
                 state.markHelloAvailable();

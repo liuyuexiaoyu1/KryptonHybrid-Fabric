@@ -57,6 +57,15 @@ public final class MicroBatchFlusher {
         if (connection == null) return;
         Channel ch = KryptonConnectionUtil.channel(connection);
         if (ch == null || !ch.isActive()) return;
+        // Singleplayer/LAN (memory) connections: writes are delivered
+        // synchronously, there is no syscall to save — flush immediately.
+        if (connection.isMemoryConnection()) {
+            if (connection instanceof ConfigurableAutoFlush caf) {
+                caf.setShouldAutoFlush(true);
+            }
+            ch.flush();
+            return;
+        }
         EventLoop loop = ch.eventLoop();
         if (loop == null) return;
 
