@@ -41,7 +41,7 @@ public final class KryptonConfig {
      * Default: 3 (matches the zstd reference implementation default).
      * Only used when {@link #compressionAlgorithm} is {@link CompressionAlgorithm#ZSTD}.
      */
-    public static volatile int zstdLevel = 3;
+    public static volatile int zstdLevel = 5;
 
     /**
      * Adaptive Zstd compression: use a higher level for large packets (e.g. chunk data)
@@ -51,7 +51,7 @@ public final class KryptonConfig {
      * be compressed at this level instead of {@link #zstdLevel}.
      * Default: 0 (disabled).
      */
-    public static volatile int zstdAdaptiveLargeLevel = 0;
+    public static volatile int zstdAdaptiveLargeLevel = 8;
 
     /**
      * Byte-size threshold above which the adaptive large-packet compression level
@@ -62,7 +62,7 @@ public final class KryptonConfig {
     public static volatile int zstdAdaptiveLargeThreshold = 8192;
 
 
-    public static volatile int zstdWorkers = 0;
+    public static volatile int zstdWorkers = 4;
 
 
     public static volatile int zstdOverlapLog = 0;
