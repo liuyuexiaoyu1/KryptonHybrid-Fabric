@@ -29,18 +29,18 @@ public final class KryptonStatsCommand {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(
             Commands.literal("krypton")
-                //#if MC >= 12111
-                .requires(source -> source.permissions() != net.minecraft.server.permissions.PermissionSet.NO_PERMISSIONS)
-                //#else
-                //$$ .requires(source -> source.hasPermission(2))
-                //#endif
                 .then(Commands.literal("stats")
                     .then(Commands.literal("show")
                         .executes(KryptonStatsCommand::executeShow))
                     .then(Commands.literal("gui")
                         .executes(KryptonStatsCommand::executeGui))
                     .then(Commands.literal("reset")
-                        .executes(KryptonStatsCommand::executeReset)))
+                            //#if MC >= 12111
+                            .requires(source -> Commands.LEVEL_GAMEMASTERS.check(source.permissions()))
+                            //#else
+                            //$$ .requires(source -> source.hasPermission(2))
+                            //#endif
+                            .executes(KryptonStatsCommand::executeReset)))
                 .then(Commands.literal("packets")
                     .then(Commands.literal("bycount")
                         .executes(ctx -> executePacketsList(ctx, 10, true))
@@ -68,15 +68,35 @@ public final class KryptonStatsCommand {
                         .then(Commands.argument("limit", IntegerArgumentType.integer(1, 50))
                             .executes(ctx -> executeModsWireList(ctx, IntegerArgumentType.getInteger(ctx, "limit"))))))
                 .then(Commands.literal("security")
+                        //#if MC >= 12111
+                        .requires(source -> Commands.LEVEL_GAMEMASTERS.check(source.permissions()))
+                        //#else
+                        //$$ .requires(source -> source.hasPermission(2))
+                        //#endif
                     .then(Commands.literal("status")
                         .executes(KryptonStatsCommand::executeSecurityStatus)))
                 .then(Commands.literal("zstd")
+                        //#if MC >= 12111
+                        .requires(source -> Commands.LEVEL_GAMEMASTERS.check(source.permissions()))
+                        //#else
+                        //$$ .requires(source -> source.hasPermission(2))
+                        //#endif
                     .then(Commands.literal("status")
                         .executes(KryptonStatsCommand::executeZstdStatus))
                     .then(Commands.literal("dict")
                         .then(Commands.literal("reload")
+                                //#if MC >= 12111
+                                .requires(source -> Commands.LEVEL_GAMEMASTERS.check(source.permissions()))
+                                //#else
+                                //$$ .requires(source -> source.hasPermission(2))
+                                //#endif
                             .executes(KryptonStatsCommand::executeZstdDictReload))))
                 .then(Commands.literal("config")
+                        //#if MC >= 12111
+                        .requires(source -> Commands.LEVEL_GAMEMASTERS.check(source.permissions()))
+                        //#else
+                        //$$ .requires(source -> source.hasPermission(2))
+                        //#endif
                     .then(Commands.literal("reload")
                         .executes(KryptonStatsCommand::executeConfigReload)))
         );

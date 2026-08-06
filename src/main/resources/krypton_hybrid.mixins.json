@@ -51,7 +51,8 @@
   "client": [
     "fastchunkentityaccess.ClientLevelMixin",
     "fastchunkentityaccess.TransientEntitySectionManagerAccessor",
-    "network.blockentity.ClientBlockEntityDeltaMixin"
+    "network.blockentity.ClientBlockEntityDeltaMixin",
+    "network.pipeline.ClientCommonPacketListenerAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
