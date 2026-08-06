@@ -1,6 +1,8 @@
 package com.xinian.KryptonHybrid.shared;
 
 import com.velocitypowered.natives.util.Natives;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.loader.api.FabricLoader;
 import org.slf4j.Logger;
 
 public class KryptonSharedBootstrap {
@@ -34,11 +36,11 @@ public class KryptonSharedBootstrap {
         }
     }
 
-    public static void run(boolean client) {
-        if (!client) {
-            LOGGER.info("Krypton is now accelerating your Minecraft server's networking stack \uD83D\uDE80");
+    public static void run() {
+        if (!(FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT)) {
+            LOGGER.info("Krypton is now accelerating your Minecraft server's networking stack");
         } else {
-            LOGGER.info("Krypton is now accelerating your Minecraft client's networking stack \uD83D\uDE80");
+            LOGGER.info("Krypton is now accelerating your Minecraft client's networking stack");
             LOGGER.info("Note that Krypton is most effective on servers, not the client.");
         }
         LOGGER.info("Compression will use {}, encryption will use {}",

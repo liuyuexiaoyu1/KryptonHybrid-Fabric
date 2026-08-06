@@ -58,7 +58,7 @@ public final class KryptonHybrid implements ModInitializer {
         // Silent Zstd dictionary auto-training from captured outbound traffic
         ServerTickEvents.END_SERVER_TICK.register(ZstdAutoTrainer::tick);
 
-        KryptonSharedBootstrap.run(false);
+        KryptonSharedBootstrap.run();
         LOGGER.info("Krypton config loaded - compression algorithm: {}, zstd status: {}",
                 KryptonConfig.compressionAlgorithm,
                 ZstdUtil.statusDescription());

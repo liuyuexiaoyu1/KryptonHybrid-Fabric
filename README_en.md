@@ -43,17 +43,17 @@ The config file is located at `config/krypton_hybrid.json` (independent on serve
 ### 1. Compression
 
 | Key | Default | Description |
-|---|---|---|
-| `compressionAlgorithm` | `ZSTD` | Compression algorithm: `ZSTD` or `ZLIB`. |
-| `zstdLevel` | `3` | Zstd compression level, range [1, 22]. Higher = better ratio, more CPU. |
-| `zstdAdaptiveLargeLevel` | `0` | Adaptive level for large packets (e.g. chunk data). `0` = off. |
-| `zstdAdaptiveLargeThreshold` | `8192` | Byte threshold above which the adaptive level is used. |
-| `zstdWorkers` | `0` | Multi-threaded compression workers; `≥1` enables the native thread pool. |
-| `zstdOverlapLog` | `0` | Advanced tuning: overlap log. |
-| `zstdJobSize` | `0` | Advanced tuning: job size. |
+|---|---------|---|
+| `compressionAlgorithm` | `ZSTD`  | Compression algorithm: `ZSTD` or `ZLIB`. |
+| `zstdLevel` | `3`     | Zstd compression level, range [1, 22]. Higher = better ratio, more CPU. |
+| `zstdAdaptiveLargeLevel` | `5`     | Adaptive level for large packets (e.g. chunk data). `0` = off. |
+| `zstdAdaptiveLargeThreshold` | `8192`  | Byte threshold above which the adaptive level is used. |
+| `zstdWorkers` | `2`     | Multi-threaded compression workers; `≥1` enables the native thread pool. |
+| `zstdOverlapLog` | `0`     | Advanced tuning: overlap log. |
+| `zstdJobSize` | `0`     | Advanced tuning: job size. |
 | `zstdEnableLDM` | `false` | Enable Long Distance Matching. |
-| `zstdLongDistanceWindowLog` | `27` | LDM window log. |
-| `zstdStrategy` | `0` | Compression strategy (`0=default, 1=fast, 2=dfast, ...`). |
+| `zstdLongDistanceWindowLog` | `27`    | LDM window log. |
+| `zstdStrategy` | `0`     | Compression strategy (`0=default, 1=fast, 2=dfast, ...`). |
 
 ### 2. Zstd Dictionary
 
@@ -155,9 +155,9 @@ Departing chunks are buffered; if the player re-enters range before expiry, the 
 ### 8. Micro-Batch Flush
 
 | Key | Default | Description |
-|---|---|---|
-| `microBatchFlushEnabled` | `false` | Replace per-tick immediate flush with a deferred channel flush (coalesce across ticks). |
-| `microBatchFlushDelayMs` | `5` | Deferred flush delay (1-20 ms; recommended 5). |
+|---|---------|---|
+| `microBatchFlushEnabled` | `true`  | Replace per-tick immediate flush with a deferred channel flush (coalesce across ticks). |
+| `microBatchFlushDelayMs` | `5`     | Deferred flush delay (1-20 ms; recommended 5). |
 
 ### 9. Motion Delta Filtering
 

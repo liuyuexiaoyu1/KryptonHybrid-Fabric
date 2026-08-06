@@ -41,7 +41,7 @@ public final class KryptonConfig {
      * Default: 3 (matches the zstd reference implementation default).
      * Only used when {@link #compressionAlgorithm} is {@link CompressionAlgorithm#ZSTD}.
      */
-    public static volatile int zstdLevel = 5;
+    public static volatile int zstdLevel = 3;
 
     /**
      * Adaptive Zstd compression: use a higher level for large packets (e.g. chunk data)
@@ -51,7 +51,7 @@ public final class KryptonConfig {
      * be compressed at this level instead of {@link #zstdLevel}.
      * Default: 0 (disabled).
      */
-    public static volatile int zstdAdaptiveLargeLevel = 8;
+    public static volatile int zstdAdaptiveLargeLevel = 5;
 
     /**
      * Byte-size threshold above which the adaptive large-packet compression level
@@ -62,7 +62,7 @@ public final class KryptonConfig {
     public static volatile int zstdAdaptiveLargeThreshold = 8192;
 
 
-    public static volatile int zstdWorkers = 4;
+    public static volatile int zstdWorkers = 2;
 
 
     public static volatile int zstdOverlapLog = 0;
@@ -374,9 +374,11 @@ public final class KryptonConfig {
      * This coalesces flushes between the entity-tick and the immediately
      * following block-update broadcast tick into a single syscall, at the cost
      * of {@link #microBatchFlushDelayMs} ms of additional outgoing latency.
-     * Default: {@code false} (opt-in for high-population servers).
+     * Default: {@code true} — batching syscalls is the single biggest
+     * throughput win under load; set to {@code false} only for latency-critical
+     * low-traffic servers.
      */
-    public static volatile boolean microBatchFlushEnabled = false;
+    public static volatile boolean microBatchFlushEnabled = true;
 
     /**
      * Deferred-flush delay in milliseconds used when {@link #microBatchFlushEnabled}

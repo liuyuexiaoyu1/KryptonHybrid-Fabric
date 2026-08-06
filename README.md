@@ -40,18 +40,18 @@
 
 ### 1. 压缩
 
-| 配置项 | 默认值 | 说明 |
-|---|---|---|
-| `compressionAlgorithm` | `ZSTD` | 压缩算法：`ZSTD` 或 `ZLIB`。 |
-| `zstdLevel` | `3` | Zstd 压缩级别，范围 [1, 22]。级别越高压缩率越好、CPU 开销越大。 |
-| `zstdAdaptiveLargeLevel` | `0` | 大包（如区块数据）自适应压缩级别。`0` 关闭自适应。 |
-| `zstdAdaptiveLargeThreshold` | `8192` | 超过该字节数使用自适应高级别。 |
-| `zstdWorkers` | `0` | 多线程压缩线程数，`≥1` 启用原生线程池。 |
-| `zstdOverlapLog` | `0` | 重叠日志（overlap log）调优参数。 |
-| `zstdJobSize` | `0` | 任务大小调优参数。 |
+| 配置项 | 默认值     | 说明 |
+|---|---------|---|
+| `compressionAlgorithm` | `ZSTD`  | 压缩算法：`ZSTD` 或 `ZLIB`。 |
+| `zstdLevel` | `3`     | Zstd 压缩级别，范围 [1, 22]。级别越高压缩率越好、CPU 开销越大。 |
+| `zstdAdaptiveLargeLevel` | `5`     | 大包（如区块数据）自适应压缩级别。`0` 关闭自适应。 |
+| `zstdAdaptiveLargeThreshold` | `8192`  | 超过该字节数使用自适应高级别。 |
+| `zstdWorkers` | `2`     | 多线程压缩线程数，`≥1` 启用原生线程池。 |
+| `zstdOverlapLog` | `0`     | 重叠日志（overlap log）调优参数。 |
+| `zstdJobSize` | `0`     | 任务大小调优参数。 |
 | `zstdEnableLDM` | `false` | 启用长距离匹配（Long Distance Matching）。 |
-| `zstdLongDistanceWindowLog` | `27` | LDM 窗口大小日志。 |
-| `zstdStrategy` | `0` | 压缩策略（`0=default, 1=fast, 2=dfast, ...`）。 |
+| `zstdLongDistanceWindowLog` | `27`    | LDM 窗口大小日志。 |
+| `zstdStrategy` | `0`     | 压缩策略（`0=default, 1=fast, 2=dfast, ...`）。 |
 
 ### 2. Zstd 字典
 
@@ -151,10 +151,10 @@
 
 ### 8. 微批 flush
 
-| 配置项 | 默认值 | 说明 |
-|---|---|---|
-| `microBatchFlushEnabled` | `false` | 用延迟通道 flush 替代每 tick 立即 flush，跨 tick 合并写入。 |
-| `microBatchFlushDelayMs` | `5` | 延迟 flush 毫秒数（1-20，建议 5）。 |
+| 配置项 | 默认值    | 说明 |
+|---|--------|---|
+| `microBatchFlushEnabled` | `true` | 用延迟通道 flush 替代每 tick 立即 flush，跨 tick 合并写入。 |
+| `microBatchFlushDelayMs` | `5`    | 延迟 flush 毫秒数（1-20，建议 5）。 |
 
 ### 9. 运动过滤
 

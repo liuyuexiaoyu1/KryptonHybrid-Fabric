@@ -34,7 +34,7 @@ public final class KryptonHybridClient implements ClientModInitializer {
         UITheme.loadFromConfig();
         KryptonHudOverlay.loadFromConfig();
         ZstdUtil.reloadDictionary();
-        KryptonSharedBootstrap.run(true);
+        KryptonSharedBootstrap.run();
 
         ClientConfigurationNetworking.registerGlobalReceiver(KryptonHelloPayload.TYPE, (payload, context) -> {
             context.client().execute(() -> {

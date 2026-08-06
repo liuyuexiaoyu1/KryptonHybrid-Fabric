@@ -45,7 +45,8 @@
     "network.pipeline.Varint21FrameDecoderMixin",
     "network.pipeline.compression.ConnectionMixin",
     "network.pipeline.encryption.ConnectionMixin",
-    "network.pipeline.encryption.ServerLoginPacketListenerImplMixin"
+    "network.pipeline.encryption.ServerLoginPacketListenerImplMixin",
+    "network.pipeline.ConnectionTuningMixin"
   ],
   "client": [
     "fastchunkentityaccess.ClientLevelMixin",
