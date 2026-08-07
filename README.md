@@ -170,12 +170,11 @@
 |---|---|---|
 | `packetCoalescingEnabled` | `true` | 实体追踪 tick 内去重冗余包（速度/传送/实体数据/头部旋转/方块实体）。 |
 
-### 11. 代理转发
+### 12. 客户端强制安装
 
 | 配置项 | 默认值 | 说明 |
 |---|---|---|
-| `proxyMode` | `NONE` | 代理模式：`NONE` / `VELOCITY`（现代转发）。 |
-| `velocityForwardingSecret` | `""` | Velocity 转发密钥（与 proxy 配置一致）。 |
+| `forceClientInstall` | `false` | 开启后，未安装本 mod 的客户端（原版客户端）在配置阶段结束后会被断开连接，并收到安装提示。关闭（默认）时原版客户端可以正常进入，只是无法享受优化特性。单机/局域网（内存连接）不受影响。 |
 
 ---
 

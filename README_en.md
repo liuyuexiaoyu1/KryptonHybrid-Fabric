@@ -173,12 +173,11 @@ Departing chunks are buffered; if the player re-enters range before expiry, the 
 |---|---|---|
 | `packetCoalescingEnabled` | `true` | Deduplicate redundant packets in tracking bundles (velocity/teleport/entity data/head rotation/block entity). |
 
-### 11. Proxy Forwarding
+### 12. Force Client Install
 
 | Key | Default | Description |
 |---|---|---|
-| `proxyMode` | `NONE` | Proxy mode: `NONE` / `VELOCITY` (modern forwarding). |
-| `velocityForwardingSecret` | `""` | Velocity forwarding secret (must match your proxy). |
+| `forceClientInstall` | `false` | When enabled, clients that do not have this mod installed (vanilla clients) are disconnected at the end of the configuration phase with an install prompt. When disabled (default), vanilla clients can join normally, just without the optimization features. Singleplayer/LAN (in-memory) connections are never affected. |
 
 ---
 

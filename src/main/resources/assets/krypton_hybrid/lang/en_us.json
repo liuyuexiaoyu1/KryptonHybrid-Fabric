@@ -39,6 +39,7 @@
   "command.krypton_hybrid.security.anomaly_events": "§7Anomaly events: §e%1$s",
   "command.krypton_hybrid.security.writes_dropped": "§7Writes dropped: §e%1$s",
   "command.krypton_hybrid.security.watermark_breaches": "§7Watermark breaches: §e%1$s",
+  "disconnect.krypton_hybrid.client_required": "This server requires the KryptonHybrid client mod. Please install it and reconnect.",
   "gui.krypton_hybrid.stats.title": "Krypton Hybrid Statistics",
   "gui.krypton_hybrid.subtitle": "Live network, compression, and traffic statistics",
   "gui.krypton_hybrid.section.network": "Network",

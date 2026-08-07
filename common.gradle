@@ -88,7 +88,12 @@ String MIXIN_CONFIG_PATH = 'krypton_hybrid.mixins.json'
 // Unified Java 25 toolchain (class version 69): required to compile against
 // ViaFabricPlus 4.x (built with Java 25) for the via-compat version query.
 // Note: runtimes must use Java 25 as well.
-JavaVersion JAVA_COMPATIBILITY = JavaVersion.VERSION_25
+JavaVersion JAVA_COMPATIBILITY
+if (unobfuscated) {
+	JAVA_COMPATIBILITY = JavaVersion.VERSION_25
+} else {
+	JAVA_COMPATIBILITY = JavaVersion.VERSION_21
+}
 
 JavaVersion MIXIN_COMPATIBILITY_LEVEL = JAVA_COMPATIBILITY
 

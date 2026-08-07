@@ -249,6 +249,17 @@ public final class KryptonConfig {
     public static volatile int securityMaxPendingWrites = 4096;
     public static volatile int securityMaxUnwritableSeconds = 15;
 
+    /**
+     * If {@code true}, clients that did not negotiate the Krypton hello during
+     * the configuration phase (i.e. vanilla clients without the mod) are
+     * disconnected with a message asking them to install the client mod.
+     * When {@code false} (default), such clients are allowed to join — they
+     * simply run without the optimized chunk/light/compression features.
+     * Singleplayer/LAN (memory) connections are never affected.
+     * Default: {@code false}.
+     */
+    public static volatile boolean forceClientInstall = false;
+
     // Chunk data optimization (biome delta encoding + heightmap compression)
 
     /**
