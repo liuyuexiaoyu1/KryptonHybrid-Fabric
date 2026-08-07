@@ -156,7 +156,7 @@ Departing chunks are buffered; if the player re-enters range before expiry, the 
 
 | Key | Default | Description |
 |---|---------|---|
-| `microBatchFlushEnabled` | `true`  | Replace per-tick immediate flush with a deferred channel flush (coalesce across ticks). |
+| `microBatchFlushEnabled` | `false`     | Replace per-tick immediate flush with a deferred channel flush (coalesce across ticks). |
 | `microBatchFlushDelayMs` | `5`     | Deferred flush delay (1-20 ms; recommended 5). |
 
 ### 9. Motion Delta Filtering

@@ -151,10 +151,10 @@
 
 ### 8. 微批 flush
 
-| 配置项 | 默认值    | 说明 |
-|---|--------|---|
-| `microBatchFlushEnabled` | `true` | 用延迟通道 flush 替代每 tick 立即 flush，跨 tick 合并写入。 |
-| `microBatchFlushDelayMs` | `5`    | 延迟 flush 毫秒数（1-20，建议 5）。 |
+| 配置项 | 默认值     | 说明 |
+|---|---------|---|
+| `microBatchFlushEnabled` | `false` | 用延迟通道 flush 替代每 tick 立即 flush，跨 tick 合并写入。 |
+| `microBatchFlushDelayMs` | `5`     | 延迟 flush 毫秒数（1-20，建议 5）。 |
 
 ### 9. 运动过滤
 

@@ -276,16 +276,6 @@ public final class KryptonConfig {
      */
     public static volatile boolean lightOptEnabled = true;
 
-    /**
-     * Master switch for the via-compatibility rule: when a Via mod is loaded
-     * locally and the connection's protocol version differs from this runtime's,
-     * Krypton's custom chunk/light/block-entity encodings are disabled (only
-     * the Via-transparent zstd compression remains).  Set to {@code false} to
-     * always keep the custom features (not recommended on cross-version Via
-     * connections).  Default: {@code true}.
-     */
-    public static volatile boolean viaCompatibilityEnabled = true;
-
     // --- Client GUI / HUD settings (persisted to config/krypton_hybrid.json
     //     by KryptonFabricConfig; the client applies them to the HUD overlay
     //     and theme at startup) ---
@@ -378,7 +368,7 @@ public final class KryptonConfig {
      * throughput win under load; set to {@code false} only for latency-critical
      * low-traffic servers.
      */
-    public static volatile boolean microBatchFlushEnabled = true;
+    public static volatile boolean microBatchFlushEnabled = false;
 
     /**
      * Deferred-flush delay in milliseconds used when {@link #microBatchFlushEnabled}
