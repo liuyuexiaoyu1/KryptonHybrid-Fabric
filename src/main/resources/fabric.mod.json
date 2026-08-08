@@ -27,7 +27,10 @@
   "depends": {
     "fabricloader": "*",
     "fabric-api": "*",
-    "minecraft": "${minecraft_dependency}",
-    "java": ">=21"
+    "minecraft": "${minecraft_dependency}"
+  },
+  "breaks": {
+    "krypton": "*",
+    "neb-fabric": "*"
   }
 }

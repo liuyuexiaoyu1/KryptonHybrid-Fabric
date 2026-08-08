@@ -58,11 +58,6 @@ public final class MotionDeltaCache {
 
     private MotionDeltaCache() {}
 
-    /**
-     * Drops superseded motion/teleport packets in-place.  Returns the number of
-     * packets removed for stats accounting.  Safe to call after the regular
-     * {@link PacketCoalescer#coalesce}.
-     */
     public static int filter(ServerPlayerConnection conn, List<Packet<?>> packets) {
         if (!KryptonConfig.motionDeltaEnabled || conn == null || packets.isEmpty()) {
             return 0;
@@ -78,11 +73,10 @@ public final class MotionDeltaCache {
         Iterator<Packet<?>> it = packets.iterator();
         while (it.hasNext()) {
             Packet<?> pkt = it.next();
-            if (pkt instanceof ClientboundSetEntityMotionPacket m) {
+            if (pkt instanceof ClientboundSetEntityMotionPacket(int motionId, Vec3 movement)) {
                 if (motionMap == null) motionMap = motionMapFor(conn);
                 //#if MC >= 26.1
-                int motionId = m.id();
-                double xa = m.movement().x(), ya = m.movement().y(), za = m.movement().z();
+                double xa = movement.x(), ya = movement.y(), za = movement.z();
                 //#elseif MC >= 12110
                 //$$ int motionId = m.getId();
                 //$$ Vec3 motion = m.getMovement();
@@ -161,6 +155,23 @@ public final class MotionDeltaCache {
     public static void invalidateEntity(int entityId) {
         for (Int2ObjectMap<MotionState> m : MOTION.values()) m.remove(entityId);
         for (Int2ObjectMap<TeleportState> m : TELEPORT.values()) m.remove(entityId);
+    }
+
+    /**
+     * Drops the cached state of {@code entityId} for one player's connection.
+     *
+     * <p>Called from {@code ServerEntity.removePairing} (the per-player entity
+     * untrack hook): vanilla sends the remove packet straight to the player's
+     * connection there, bypassing the bundle collectors that {@link #filter}
+     * runs on, so without this the per-player maps would grow one entry per
+     * entity ever seen by the player — a memory leak for long sessions on
+     * entity-heavy servers.</p>
+     */
+    public static void invalidateFor(ServerPlayerConnection conn, int entityId) {
+        Int2ObjectOpenHashMap<MotionState> m = MOTION.get(conn);
+        if (m != null) m.remove(entityId);
+        Int2ObjectOpenHashMap<TeleportState> t = TELEPORT.get(conn);
+        if (t != null) t.remove(entityId);
     }
 }
 
