@@ -1,10 +1,16 @@
 package com.xinian.KryptonHybrid.mixin.network.chunk;
 
+import io.netty.buffer.ByteBuf;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData;
 import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import com.xinian.KryptonHybrid.shared.network.codec.KryptonWireVariant;
 import com.xinian.KryptonHybrid.shared.network.control.KryptonWireFormat;
+//#if MC >= 260300
+import com.xinian.KryptonHybrid.shared.network.chunk.KryptonLightDataStreamCodec;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import net.minecraft.network.codec.StreamCodec;
+//#endif
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -68,6 +74,21 @@ import java.util.List;
  */
 @Mixin(ClientboundLightUpdatePacketData.class)
 public abstract class ChunkLightCompressMixin {
+
+    //#if MC >= 260300
+
+    @ModifyExpressionValue(
+            method = "<clinit>",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/network/codec/StreamCodec;composite(Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lcom/mojang/datafixers/util/Function6;)Lnet/minecraft/network/codec/StreamCodec;"
+            )
+    )
+    private static StreamCodec<?, ?> krypton$lightDataCodec(StreamCodec<?, ?> original) {
+        return new KryptonLightDataStreamCodec((StreamCodec<ByteBuf, ClientboundLightUpdatePacketData>) original);
+    }
+
+    //#else
 
     /** Magic marker byte that identifies the Krypton light-data encoding. */
     @Unique private static final int KRYPTON_MARKER = 0x4B; // 'K'
@@ -156,4 +177,6 @@ public abstract class ChunkLightCompressMixin {
         }
         return true;
     }
+
+    //#endif
 }

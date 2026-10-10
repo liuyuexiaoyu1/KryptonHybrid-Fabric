@@ -125,6 +125,7 @@ public abstract class FriendlyByteBufMixin extends ByteBuf {
         cir.setReturnValue(out);
     }
 
+    //#if MC < 260300
     @Inject(method = "readCollection", at = @At("HEAD"), cancellable = true)
     private <T, C extends Collection<T>> void readCollection$kryptonGuard(
             IntFunction<C> collectionFactory,
@@ -197,6 +198,7 @@ public abstract class FriendlyByteBufMixin extends ByteBuf {
         }
         cir.setReturnValue(map);
     }
+    //#endif
 
     @Inject(method = "readWithCount", at = @At("HEAD"), cancellable = true)
     private void readWithCount$kryptonGuard(Consumer<FriendlyByteBuf> reader, CallbackInfo ci) {

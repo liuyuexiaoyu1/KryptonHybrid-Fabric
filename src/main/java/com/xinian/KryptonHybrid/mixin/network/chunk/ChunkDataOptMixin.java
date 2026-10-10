@@ -4,6 +4,12 @@ import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import com.xinian.KryptonHybrid.shared.network.chunk.ChunkDataCodec;
 import com.xinian.KryptonHybrid.shared.network.codec.KryptonWireVariant;
 import com.xinian.KryptonHybrid.shared.network.control.KryptonWireFormat;
+//#if MC >= 260300
+import com.xinian.KryptonHybrid.shared.network.chunk.KryptonHeightmapsStreamCodec;
+import com.xinian.KryptonHybrid.shared.network.chunk.KryptonSectionBufferStreamCodec;
+import net.minecraft.network.codec.StreamCodec;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
+//#endif
 import io.netty.buffer.Unpooled;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.LongArrayTag;
@@ -82,6 +88,34 @@ import java.util.Map;
 @Mixin(ClientboundLevelChunkPacketData.class)
 public abstract class ChunkDataOptMixin {
 
+    //#if MC >= 260300
+
+    @ModifyArg(
+            method = "<clinit>",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/network/codec/StreamCodec;composite(Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lcom/mojang/datafixers/util/Function3;)Lnet/minecraft/network/codec/StreamCodec;"
+            ),
+            index = 0
+    )
+    private static StreamCodec<?, ?> krypton$heightmapsCodec(StreamCodec<?, ?> original) {
+        return new KryptonHeightmapsStreamCodec(original);
+    }
+
+    @ModifyArg(
+            method = "<clinit>",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/network/codec/StreamCodec;composite(Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lcom/mojang/datafixers/util/Function3;)Lnet/minecraft/network/codec/StreamCodec;"
+            ),
+            index = 2
+    )
+    private static StreamCodec<?, ?> krypton$sectionBufferCodec(StreamCodec<?, ?> original) {
+        return new KryptonSectionBufferStreamCodec(original);
+    }
+
+    //#else
+
     /** Krypton chunk-data marker byte. Never collides with vanilla NBT (starts with TAG_Compound = 0x0A). */
     @Unique private static final int KRYPTON_MARKER = 0x4B;
 
@@ -144,5 +178,7 @@ public abstract class ChunkDataOptMixin {
 
         ci.cancel();
     }
+
+    //#endif
 }
 

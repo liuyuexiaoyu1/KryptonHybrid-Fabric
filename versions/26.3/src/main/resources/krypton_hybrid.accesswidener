@@ -1,0 +1,9 @@
+accessWidener v2 official
+
+accessible method net/minecraft/network/Varint21FrameDecoder decode (Lio/netty/channel/ChannelHandlerContext;Lio/netty/buffer/ByteBuf;Ljava/util/List;)V
+accessible class net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData$BlockEntityInfo
+accessible method net/minecraft/server/level/ChunkHolder broadcast (Ljava/util/List;Lnet/minecraft/network/protocol/Packet;)V
+accessible method net/minecraft/server/level/ChunkHolder broadcastBlockEntity (Ljava/util/List;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)V
+accessible method net/minecraft/server/level/ServerChunkCache tickChunks ()V
+accessible method net/minecraft/network/protocol/game/ClientboundBlockEntityDataPacket <init> (Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/entity/BlockEntityType;Lnet/minecraft/nbt/CompoundTag;)V
+accessible field net/minecraft/client/gui/screens/Screen renderables Ljava/util/List;
