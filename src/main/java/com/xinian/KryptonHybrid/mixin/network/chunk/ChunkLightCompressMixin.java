@@ -7,9 +7,9 @@ import com.xinian.KryptonHybrid.shared.KryptonConfig;
 import com.xinian.KryptonHybrid.shared.network.codec.KryptonWireVariant;
 import com.xinian.KryptonHybrid.shared.network.control.KryptonWireFormat;
 //#if MC >= 260300
-import com.xinian.KryptonHybrid.shared.network.chunk.KryptonLightDataStreamCodec;
-import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import net.minecraft.network.codec.StreamCodec;
+//$$ import com.xinian.KryptonHybrid.shared.network.chunk.KryptonLightDataStreamCodec;
+//$$ import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+//$$ import net.minecraft.network.codec.StreamCodec;
 //#endif
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -76,18 +76,16 @@ import java.util.List;
 public abstract class ChunkLightCompressMixin {
 
     //#if MC >= 260300
-
-    @ModifyExpressionValue(
-            method = "<clinit>",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/network/codec/StreamCodec;composite(Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lcom/mojang/datafixers/util/Function6;)Lnet/minecraft/network/codec/StreamCodec;"
-            )
-    )
-    private static StreamCodec<?, ?> krypton$lightDataCodec(StreamCodec<?, ?> original) {
-        return new KryptonLightDataStreamCodec((StreamCodec<ByteBuf, ClientboundLightUpdatePacketData>) original);
-    }
-
+    //$$ @ModifyExpressionValue(
+            //$$         method = "<clinit>",
+            //$$         at = @At(
+                    //$$                 value = "INVOKE",
+                    //$$                 target = "Lnet/minecraft/network/codec/StreamCodec;composite(Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lnet/minecraft/network/codec/StreamCodec;Ljava/util/function/Function;Lcom/mojang/datafixers/util/Function6;)Lnet/minecraft/network/codec/StreamCodec;"
+            //$$         )
+            //$$ )
+            //$$ private static StreamCodec<?, ?> krypton$lightDataCodec(StreamCodec<?, ?> original) {
+        //$$     return new KryptonLightDataStreamCodec((StreamCodec<ByteBuf, ClientboundLightUpdatePacketData>) original);
+        //$$ }
     //#else
 
     /** Magic marker byte that identifies the Krypton light-data encoding. */
