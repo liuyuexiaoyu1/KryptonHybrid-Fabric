@@ -73,10 +73,11 @@ public final class MotionDeltaCache {
         Iterator<Packet<?>> it = packets.iterator();
         while (it.hasNext()) {
             Packet<?> pkt = it.next();
-            if (pkt instanceof ClientboundSetEntityMotionPacket(int motionId, Vec3 movement)) {
+            if (pkt instanceof ClientboundSetEntityMotionPacket m) {
                 if (motionMap == null) motionMap = motionMapFor(conn);
                 //#if MC >= 26.1
-                double xa = movement.x(), ya = movement.y(), za = movement.z();
+                int motionId = m.id();
+                double xa = m.movement().x(), ya = m.movement().y(), za = m.movement().z();
                 //#elseif MC >= 12110
                 //$$ int motionId = m.getId();
                 //$$ Vec3 motion = m.getMovement();
